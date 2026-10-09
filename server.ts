@@ -1603,14 +1603,15 @@ Responda diretamente e com máxima inteligência analítica à mensagem acima.`;
                 systemInstruction,
               },
             }),
-            8000
+            30000
           );
           if (directResp.text) {
             textResponse = directResp.text;
             usedSource = `Gemini (${model})`;
             break;
           }
-        } catch {
+        } catch (error: any) {
+          console.error(`Erro ao chamar Gemini (${model}):`, error.message || error);
           // Continua para o próximo modelo se este falhar
         }
       }
@@ -1620,6 +1621,7 @@ Responda diretamente e com máxima inteligência analítica à mensagem acima.`;
     // Se nenhuma resposta direta da API foi obtida (ex: 429 de cota em chave compartilhada),
     // aciona o motor analítico institucional estruturado para que o usuário NUNCA fique travado
     if (!textResponse) {
+      console.warn('Nenhuma resposta do Gemini. Acionando fallback estático.');
       const fallbackResult = generateInstitutionalFallback(message, ativoContexto, quotesValidas);
       textResponse = fallbackResult.reply;
       usedSource = fallbackResult.usedSource;
