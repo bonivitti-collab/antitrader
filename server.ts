@@ -1644,7 +1644,7 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (_req, res) => {
       res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
@@ -1656,4 +1656,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+export default app;
