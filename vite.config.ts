@@ -11,7 +11,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.png', 'favicon.svg', 'apple-touch-icon.png', 'icon.svg'],
+        includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.png'],
         manifest: {
           id: '/',
           name: 'AntiTrader • Terminal de Valor',
