@@ -756,7 +756,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           <div className="flex items-center gap-2 bg-[#090d16] hover:bg-slate-900 transition-colors text-white px-2.5 py-1 rounded-lg border border-slate-800 shadow-xs cursor-default">
             {/* Ícone AntiTrader: Idêntico ao ícone PWA, nítido e chamativo */}
             <img
-              src="/icon.svg"
+              src="/logo.png"
               alt="AntiTrader Ícone & Logo"
               className="w-5 h-5 rounded-sm shrink-0 shadow-xs"
             />

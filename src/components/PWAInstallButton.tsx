@@ -54,7 +54,7 @@ export const PWAInstallButton: React.FC = () => {
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 text-slate-800">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <img src="/icon.svg" alt="AntiTrader Logo" className="w-7 h-7 rounded-lg shadow-xs" />
+                <img src="/logo.png" alt="AntiTrader Logo" className="w-7 h-7 rounded-lg shadow-xs" />
                 <h3 className="font-bold text-sm text-slate-900">Instalar AntiTrader no iOS</h3>
               </div>
               <button
