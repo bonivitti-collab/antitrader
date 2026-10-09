@@ -11,7 +11,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.png'],
+        includeAssets: ['favicon-v2.png', 'apple-touch-icon-v2.png', 'logo.png'],
         manifest: {
           id: '/',
           name: 'AntiTrader • Terminal de Valor',
@@ -24,19 +24,19 @@ export default defineConfig(() => {
           scope: '/',
           icons: [
             {
-              src: '/pwa-192x192.png',
+              src: '/pwa-192x192-v2.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/pwa-512x512.png',
+              src: '/pwa-512x512-v2.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/pwa-maskable-512x512.png',
+              src: '/pwa-maskable-512x512-v2.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
