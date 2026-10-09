@@ -902,8 +902,10 @@ function scheduleDailyScanTimer() {
   }, msRemaining);
 }
 
-// Inicia o agendador no carregamento do servidor
-scheduleDailyScanTimer();
+// Inicia o agendador no carregamento do servidor (apenas se não estiver na Vercel)
+if (!process.env.VERCEL) {
+  scheduleDailyScanTimer();
+}
 
 async function refreshOpportunitiesCache() {
   if (isRefreshingCache) return;
