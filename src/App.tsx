@@ -1580,7 +1580,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             </button>
           </div>
           {/* Header da Ação Selecionada */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-300 gap-2.5">
+          <div className="flex flex-wrap items-center justify-between pb-3 border-b border-slate-300 gap-2.5">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-300">
@@ -1603,15 +1603,15 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap sm:flex-nowrap">
-              <div className="text-left sm:text-right font-mono">
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap shrink-0">
+              <div className="text-left sm:text-right font-mono shrink-0">
                 <div className="flex items-center sm:justify-end gap-1.5">
-                  <span className="text-xl sm:text-2xl font-bold text-slate-900 block">
+                  <span className="text-xl sm:text-2xl font-bold text-slate-900 block whitespace-nowrap">
                     {fmtMoeda(preco)}
                   </span>
                   {ativo.variacaoDia !== undefined && (
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap ${
                         ativo.variacaoDia >= 0
                           ? 'bg-emerald-100 text-emerald-800'
                           : 'bg-rose-100 text-rose-800'
@@ -1622,22 +1622,22 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                     </span>
                   )}
                 </div>
-                <div className="flex items-center sm:justify-end gap-1.5 text-[11px] text-slate-600 mt-0.5">
-                  <span>P/L: {calc.plAtual.toFixed(1)}x • P/VP: {calc.pvpAtual.toFixed(2)}x</span>
+                <div className="flex items-center sm:justify-end gap-1.5 text-[11px] text-slate-600 mt-0.5 whitespace-nowrap shrink-0">
+                  <span className="whitespace-nowrap">P/L: {calc.plAtual.toFixed(1)}x • P/VP: {calc.pvpAtual.toFixed(2)}x</span>
                   <button
                     onClick={atualizarCotacaoAtual}
                     disabled={atualizandoCotacao}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 cursor-pointer transition-colors"
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
                     title="Consultar cotação ao vivo em tempo real deste ativo no pregão e recalcular desconto"
                   >
                     <RefreshCw className={`w-2.5 h-2.5 ${atualizandoCotacao ? 'animate-spin' : ''}`} />
-                    <span>{atualizandoCotacao ? 'Cotação...' : 'Cotação Atual'}</span>
+                    <span className="whitespace-nowrap">{atualizandoCotacao ? 'Cotação...' : 'Cotação Atual'}</span>
                   </button>
                 </div>
               </div>
 
               <div
-                className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold tracking-wider uppercase border-2 flex items-center gap-1.5 shrink-0 ${
+                className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold tracking-wider uppercase border-2 flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
                   calc.status === 'COMPRA'
                     ? 'bg-emerald-50 text-emerald-900 border-emerald-400'
                     : calc.status === 'JUSTO'
@@ -1653,7 +1653,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               <button
                 type="button"
                 onClick={() => setMobileTab('copilot')}
-                className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-md border border-blue-300 transition-colors cursor-pointer shadow-2xs shrink-0"
+                className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-md border border-blue-300 transition-colors cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
                 title="Abrir chat do AntiTrader AI para este ativo"
               >
                 <Bot className="w-3.5 h-3.5 text-blue-600" />
