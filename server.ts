@@ -1490,7 +1490,7 @@ Acompanhamento contínuo de resultados regulatórios (CVM/SEC) e notícias de me
    - Posição de caixa robusta garantindo proteção contra oscilações de juros.
 
 3. **Pesquisa Contínua:**
-   - Suporte analítico contínuo alimentado pela inteligência avançada do AntiTrader AI!
+   - Suporte analítico contínuo alimentado pela inteligência avançada do AntiTrader AI!`
     };
   }
 

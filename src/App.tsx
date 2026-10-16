@@ -3,6 +3,7 @@ import { OPORTUNIDADES_SETUP } from './data/oportunidades';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import {
   Send,
+  Sparkles,
   Copy,
   Check,
   ShieldCheck,
