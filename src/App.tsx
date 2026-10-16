@@ -192,7 +192,7 @@ function FormattedMessage({ text }: { text: string }) {
 export default function GrahamBuyZoneWorkspace() {
   // Controle de abas para telas pequenas (mobile/tablet)
   // No desktop, o Painel de Informações e o Copilot ficam lado a lado
-  const [mobileTab, setMobileTab] = useState<'info' | 'copilot' | 'ambas'>('ambas');
+  const [mobileTab, setMobileTab] = useState<'oportunidades' | 'info' | 'copilot' | 'ambas'>('oportunidades');
 
   // Chave personalizada do usuário (salva no localStorage para backup)
   const [userApiKey, setUserApiKey] = useState<string>(() => {
@@ -757,6 +757,15 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
   const zona = fair * (1 - margem / 100);
   return { fair, zona, numeroGraham, grahamCresc };
 }
+
+  // Contagem de ativos estritamente na Zona de Compra Graham
+  const totalNaZona = useMemo(() => {
+    return oportunidades.filter((op) => {
+      const { zona } = calcularZonaPreco(op);
+      return op.preco <= zona;
+    }).length;
+  }, [oportunidades]);
+
   // Filtragem das Oportunidades do Setup (Peneira com Preço Justo e Zona de Compra)
   const oportunidadesFiltradas = useMemo(() => {
     return oportunidades
@@ -886,12 +895,12 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
       {/* Aqui você clica no ativo lá em cima e ele abre destrinchado*/}
       {/* na esquerda, com a IA do lado direito em 2 abas iguais!   */}
       {/* ========================================================= */}
-      <div className="bg-white border-b border-slate-300 px-3 py-1.5 flex items-center justify-between gap-2 shrink-0 overflow-x-auto shadow-2xs">
+      <div className="bg-white border-b border-slate-300 px-2 sm:px-3 py-1.5 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0 overflow-x-auto shadow-2xs">
         {/* Título & Filtros da Peneira */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <div className="flex items-center gap-1 font-bold text-xs text-slate-900 tracking-tight uppercase">
             <Activity className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span className="whitespace-nowrap">Oportunidades:</span>
+            <span className="whitespace-nowrap hidden sm:inline">Oportunidades:</span>
           </div>
 
           <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded border border-slate-300">
@@ -911,7 +920,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           {/* Relógio Pequenininho de Contagem Regressiva para a Varredura das 19h BRT */}
           <button
             onClick={() => setModalScanInfoAberto(true)}
-            className="flex items-center gap-1 bg-[#0f172a] text-white px-2 py-0.5 rounded text-[10px] font-mono border border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs"
+            className="flex items-center gap-1 bg-[#0f172a] text-white px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-mono border border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs"
             title="Próxima varredura geral diária às 19:00 de Brasília. Clique para auditar ou rodar varredura."
           >
             <Clock className="w-2.5 h-2.5 text-emerald-400 animate-pulse shrink-0" />
@@ -921,7 +930,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
 
           <button
             onClick={() => setFiltroZonaApenas(!filtroZonaApenas)}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-colors shrink-0 shadow-2xs ${
+            className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-colors shrink-0 shadow-2xs ${
               filtroZonaApenas
                 ? 'bg-emerald-600 border-emerald-700 text-white shadow-xs'
                 : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
@@ -929,7 +938,8 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             title={filtroZonaApenas ? 'Mostrando apenas ativos estritamente na Zona de Compra' : 'Clique para ver todas as ações monitoradas'}
           >
             <Check className={`w-3 h-3 ${filtroZonaApenas ? 'text-white' : 'text-slate-400'}`} />
-            <span>Peneira: {filtroZonaApenas ? 'Apenas Na Zona' : 'Todos'}</span>
+            <span className="hidden sm:inline">Peneira: </span>
+            <span>{filtroZonaApenas ? 'Na Zona' : 'Todos'}</span>
           </button>
 
           {/* Botão de Refresh Rápido junto aos controles da barra */}
@@ -941,6 +951,20 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           >
             <RefreshCw className={`w-2.5 h-2.5 text-blue-600 ${carregandoOportunidades ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Atualizar</span>
+          </button>
+
+          {/* Atalho para abrir a grade completa de oportunidades em telas menores */}
+          <button
+            onClick={() => setMobileTab('oportunidades')}
+            className={`lg:hidden flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 cursor-pointer transition-colors ${
+              mobileTab === 'oportunidades'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'
+            }`}
+            title="Ver grade completa e comparativo de todas as oportunidades"
+          >
+            <Activity className="w-2.5 h-2.5" />
+            <span>Grade ({oportunidadesFiltradas.length})</span>
           </button>
         </div>
 
@@ -961,7 +985,12 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               return (
                 <button
                   key={op.id}
-                  onClick={() => carregarAtivo(op)}
+                  onClick={() => {
+                    carregarAtivo(op);
+                    if (mobileTab === 'oportunidades') {
+                      setMobileTab('info');
+                    }
+                  }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-mono shrink-0 flex items-center gap-2 cursor-pointer transition-all border-2 text-left ${
                     isSelected
                       ? 'bg-blue-600 text-white font-bold border-blue-600 shadow-sm'
@@ -1035,49 +1064,344 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
       </div>
 
       {/* ========================================================= */}
-      {/* SELETOR MOBILE / TABLET (APARECE APENAS EM TELAS MENORES) */}
+      {/* SELETOR MOBILE / TABLET (APARECE EM CELULAR E TABLET <lg) */}
       {/* ========================================================= */}
-      <div className="flex md:hidden bg-slate-100 border-b border-slate-300 px-3 py-1 items-center justify-between text-xs font-bold shrink-0">
-        <span className="text-slate-600 text-[11px] font-mono">Visualizar:</span>
-        <div className="flex gap-1">
+      <div className="flex lg:hidden bg-slate-100 border-b border-slate-300 px-2 sm:px-3 py-1 items-center justify-between text-xs font-bold shrink-0 overflow-x-auto scrollbar-none gap-2">
+        <span className="text-slate-500 text-[10px] font-mono shrink-0 uppercase tracking-wider">Aba:</span>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => setMobileTab('oportunidades')}
+            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+              mobileTab === 'oportunidades'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5 shrink-0" />
+            <span>Oportunidades</span>
+            <span
+              className={`text-[9px] font-mono px-1 rounded-full ${
+                mobileTab === 'oportunidades'
+                  ? 'bg-blue-800 text-white'
+                  : 'bg-emerald-100 text-emerald-800 font-bold'
+              }`}
+            >
+              {totalNaZona}
+            </span>
+          </button>
           <button
             onClick={() => setMobileTab('info')}
-            className={`px-2.5 py-0.5 rounded border ${mobileTab === 'info' ? 'bg-white text-blue-700 border-slate-300 shadow-2xs font-bold' : 'text-slate-600 border-transparent'}`}
+            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+              mobileTab === 'info'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+            }`}
           >
-            Valuation &amp; Balanço
+            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+            <span>Valuation</span>
+            <span
+              className={`text-[9px] font-mono px-1 rounded ${
+                mobileTab === 'info' ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {ativo.ticker}
+            </span>
           </button>
           <button
             onClick={() => setMobileTab('copilot')}
-            className={`px-2.5 py-0.5 rounded border ${mobileTab === 'copilot' ? 'bg-white text-blue-700 border-slate-300 shadow-2xs font-bold' : 'text-slate-600 border-transparent'}`}
+            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+              mobileTab === 'copilot'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+            }`}
           >
-            Copilot IA
+            <Bot className="w-3.5 h-3.5 shrink-0" />
+            <span>Copilot IA</span>
           </button>
           <button
             onClick={() => setMobileTab('ambas')}
-            className={`px-2.5 py-0.5 rounded border ${mobileTab === 'ambas' ? 'bg-white text-blue-700 border-slate-300 shadow-2xs font-bold' : 'text-slate-600 border-transparent'}`}
+            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+              mobileTab === 'ambas'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+            }`}
           >
-            Ambas
+            <Layers className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">Lado a Lado</span>
+            <span className="sm:hidden">Ambas</span>
           </button>
         </div>
       </div>
 
       {/* ========================================================= */}
-      {/* ÁREA PRINCIPAL: 2 PAINÉIS (VALUATION & COPILOT AO LADO)   */}
-      {/* O painel vertical foi removido. Fica o meio e o copilot!  */}
+      {/* ÁREA PRINCIPAL: RESPONSIVA (MOBILE, TABLET E DESKTOP)     */}
       {/* ========================================================= */}
-      <div className="flex-1 flex flex-col md:flex-row w-full max-w-full overflow-hidden divide-y md:divide-y-0 md:divide-x divide-slate-300 min-h-0">
+      <div
+        className={`flex-1 flex ${
+          mobileTab === 'ambas' ? 'flex-col md:flex-row' : 'flex-col lg:flex-row'
+        } w-full max-w-full overflow-hidden divide-y ${
+          mobileTab === 'ambas' ? 'md:divide-y-0 md:divide-x' : 'lg:divide-y-0 lg:divide-x'
+        } divide-slate-300 min-h-0`}
+      >
         {/* ========================================================= */}
-        {/* PAINEL VERTICAL DA ESQUERDA: PENEIRA DE OPORTUNIDADES     */}
-        {/* Lista Vertical com Preço de Tela vs Preço Zona de Compra  */}
-        {/* PAINEL DO MEIO: VALUATION, GAUGE & DADOS DO BALANÇO       */}
-        {/* Ocupa ~62% da largura no desktop (espaçoso e nítido)       */}
+        {/* ABA MOBILE / TABLET: PAINEL DE OPORTUNIDADES DEDICADO     */}
+        {/* Visível quando a aba "Oportunidades" está selecionada     */}
         {/* ========================================================= */}
+        {mobileTab === 'oportunidades' && (
+          <section className="lg:hidden w-full flex-1 min-w-0 bg-[#f8fafc] flex flex-col p-3 sm:p-4 space-y-3.5 overflow-y-auto">
+            {/* Header do Painel com Controles e Filtros */}
+            <div className="bg-white border border-slate-300 rounded-xl p-3 sm:p-3.5 shadow-2xs space-y-2.5 shrink-0">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900 leading-tight">
+                      Peneira de Oportunidades Graham
+                    </h2>
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      {oportunidadesFiltradas.length} ativos filtrados • {totalNaZona} na Zona de Compra
+                    </p>
+                  </div>
+                </div>
+
+                {/* Botão de Refresh */}
+                <button
+                  onClick={fetchOportunidades}
+                  disabled={carregandoOportunidades}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg shadow-2xs cursor-pointer transition-colors"
+                >
+                  <RefreshCw className={`w-3 h-3 text-blue-600 ${carregandoOportunidades ? 'animate-spin' : ''}`} />
+                  <span>{carregandoOportunidades ? 'Atualizando...' : 'Atualizar'}</span>
+                </button>
+              </div>
+
+              {/* Linha de Filtros: Mercado e Peneira */}
+              <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-slate-100 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] font-mono text-slate-500 mr-1">Mercado:</span>
+                  {(['TODOS', 'B3', 'US'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setFiltroMercado(m)}
+                      className={`px-2 py-0.5 rounded text-xs font-bold cursor-pointer transition-colors ${
+                        filtroMercado === m
+                          ? 'bg-blue-600 text-white shadow-2xs'
+                          : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setModalScanInfoAberto(true)}
+                    className="flex items-center gap-1 bg-[#0f172a] text-white px-2 py-0.5 rounded text-[10px] font-mono border border-slate-700 cursor-pointer shadow-2xs"
+                    title="Próxima varredura geral diária às 19:00 de Brasília"
+                  >
+                    <Clock className="w-2.5 h-2.5 text-emerald-400 animate-pulse shrink-0" />
+                    <span className="text-slate-400 text-[9px] font-medium hidden sm:inline">19h:</span>
+                    <span className="font-bold text-emerald-400 tracking-wider">{countdownStr}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setFiltroZonaApenas(!filtroZonaApenas)}
+                    className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
+                      filtroZonaApenas
+                        ? 'bg-emerald-600 border-emerald-700 text-white shadow-xs'
+                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Check className={`w-3 h-3 ${filtroZonaApenas ? 'text-white' : 'text-slate-400'}`} />
+                    <span>{filtroZonaApenas ? 'Na Zona' : 'Todos'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista/Grade de Cards de Oportunidades */}
+            {oportunidadesFiltradas.length === 0 ? (
+              <div className="bg-white border border-slate-300 rounded-xl p-8 text-center text-slate-500 space-y-2">
+                <Activity className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="font-semibold text-sm">Nenhum ativo encontrado com estes filtros.</p>
+                <button
+                  onClick={() => {
+                    setFiltroMercado('TODOS');
+                    setFiltroZonaApenas(false);
+                  }}
+                  className="text-xs text-blue-600 font-bold underline cursor-pointer"
+                >
+                  Limpar filtros da peneira
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-6">
+                {oportunidadesFiltradas.map((op) => {
+                  const isSelected = ativo.ticker === op.ticker;
+                  const { zona, fair } = calcularZonaPreco(op);
+                  const naZona = op.preco <= zona;
+                  const margemPct = op.preco > 0 ? ((zona - op.preco) / op.preco) * 100 : 0;
+                  const moedaSimbolo = op.moeda === 'BRL' ? 'R$' : '$';
+
+                  return (
+                    <div
+                      key={op.id}
+                      onClick={() => {
+                        carregarAtivo(op);
+                        setMobileTab('info');
+                      }}
+                      className={`rounded-xl p-3.5 transition-all cursor-pointer flex flex-col justify-between border-2 ${
+                        isSelected
+                          ? 'bg-blue-50/70 border-blue-600 shadow-sm'
+                          : naZona
+                          ? 'bg-white border-emerald-300 hover:border-emerald-500 hover:shadow-xs'
+                          : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
+                      }`}
+                    >
+                      <div>
+                        {/* Linha Superior: Ticker, Nome, Mercado & Status */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-base font-black font-mono tracking-tight text-slate-900">
+                                {op.ticker}
+                              </span>
+                              <span
+                                className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase border ${
+                                  op.mercado === 'B3'
+                                    ? 'bg-amber-50 text-amber-900 border-amber-300'
+                                    : 'bg-indigo-50 text-indigo-900 border-indigo-300'
+                                }`}
+                              >
+                                {op.mercado}
+                              </span>
+                              {isSelected && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-600 text-white shadow-2xs">
+                                  EM FOCO
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-600 font-medium truncate mt-0.5">
+                              {op.nome}
+                            </div>
+                          </div>
+
+                          {/* Badge de Zona / Margem */}
+                          <div className="text-right shrink-0">
+                            {naZona ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs uppercase">
+                                <Check className="w-3 h-3" />
+                                NA ZONA
+                              </span>
+                            ) : (
+                              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 uppercase">
+                                RADAR
+                              </span>
+                            )}
+                            <div
+                              className={`text-xs font-bold font-mono mt-0.5 ${
+                                naZona ? 'text-emerald-700' : 'text-slate-500'
+                              }`}
+                            >
+                              {naZona ? `+${margemPct.toFixed(0)}% margem` : 'Acima do Teto'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Preços: Cotação Atual vs Zona Graham vs Preço Justo */}
+                        <div className="mt-3 grid grid-cols-3 gap-1.5 bg-slate-50 p-2 rounded-lg border border-slate-200 text-center font-mono">
+                          <div>
+                            <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">
+                              Preço Atual
+                            </span>
+                            <span className="text-xs font-bold text-slate-900">
+                              {moedaSimbolo} {op.preco.toFixed(2)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="block text-[9px] font-sans font-bold text-emerald-700 uppercase">
+                              Teto Compra
+                            </span>
+                            <span className="text-xs font-extrabold text-emerald-700">
+                              {moedaSimbolo} {zona.toFixed(2)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="block text-[9px] font-sans font-bold text-blue-700 uppercase">
+                              Preço Justo
+                            </span>
+                            <span className="text-xs font-bold text-blue-800">
+                              {moedaSimbolo} {fair.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Múltiplos Fundamentais */}
+                        <div className="mt-2.5 grid grid-cols-4 gap-1 text-center text-[10px] font-mono">
+                          <div className="bg-white border border-slate-200 rounded p-1">
+                            <span className="text-slate-400 block text-[9px]">P/L</span>
+                            <span className="font-bold text-slate-800">{op.pl.toFixed(1)}x</span>
+                          </div>
+                          <div className="bg-white border border-slate-200 rounded p-1">
+                            <span className="text-slate-400 block text-[9px]">P/VP</span>
+                            <span className="font-bold text-slate-800">{op.pvp.toFixed(2)}x</span>
+                          </div>
+                          <div className="bg-white border border-slate-200 rounded p-1">
+                            <span className="text-slate-400 block text-[9px]">DY</span>
+                            <span className="font-bold text-emerald-700">{op.dividendYield}%</span>
+                          </div>
+                          <div className="bg-white border border-slate-200 rounded p-1">
+                            <span className="text-slate-400 block text-[9px]">ROE</span>
+                            <span className="font-bold text-blue-700">{op.roe}%</span>
+                          </div>
+                        </div>
+
+                        {/* Destaque / Moat */}
+                        {op.destaqueSetup && (
+                          <p className="mt-2 text-[11px] text-slate-600 line-clamp-2 leading-tight">
+                            {op.destaqueSetup}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Botão de Ação para Abrir no Valuation */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          carregarAtivo(op);
+                          setMobileTab('info');
+                        }}
+                        className={`w-full mt-3 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs ${
+                          isSelected
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-slate-900 text-white hover:bg-blue-600'
+                        }`}
+                      >
+                        <span>
+                          {isSelected ? 'Ver Valuation & Balanço' : `Analisar ${op.ticker} no Valuation`}
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
         {/* ========================================================= */}
-        {/* ABA DA ESQUERDA (50%): ATIVO DESTRINCHADO & VALUATION     */}
+        {/* ABA DA ESQUERDA: ATIVO DESTRINCHADO & VALUATION           */}
         {/* ========================================================= */}
         <main
-          className={`w-full md:w-1/2 flex-1 min-w-0 bg-[#fbfcfd] flex flex-col p-3 sm:p-4 space-y-3.5 overflow-y-auto ${
-            mobileTab === 'copilot' ? 'hidden md:flex' : 'flex'
+          className={`w-full ${
+            mobileTab === 'ambas' ? 'md:w-1/2' : 'lg:w-1/2'
+          } flex-1 min-w-0 bg-[#fbfcfd] flex flex-col p-3 sm:p-4 space-y-3.5 overflow-y-auto ${
+            mobileTab === 'copilot' || mobileTab === 'oportunidades' ? 'hidden lg:flex' : 'flex'
           }`}
         >
           {/* Header da Ação Selecionada */}
@@ -1414,8 +1738,10 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         {/* ABA DA DIREITA (50%): IA COPILOT DE MERCADO & VALUATION   */}
         {/* ========================================================= */}
         <aside
-          className={`w-full md:w-1/2 flex-1 min-w-0 bg-[#fbfbfc] flex flex-col border-l md:border-l-0 border-slate-300 overflow-hidden ${
-            mobileTab === 'info' ? 'hidden md:flex' : 'flex'
+          className={`w-full ${
+            mobileTab === 'ambas' ? 'md:w-1/2' : 'lg:w-1/2'
+          } flex-1 min-w-0 bg-[#fbfbfc] flex flex-col border-t lg:border-t-0 lg:border-l border-slate-300 overflow-hidden ${
+            mobileTab === 'info' || mobileTab === 'oportunidades' ? 'hidden lg:flex' : 'flex'
           }`}
         >
           {/* Header do Chat */}
