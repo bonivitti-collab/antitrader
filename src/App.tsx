@@ -26,7 +26,17 @@ import {
   Globe,
   Clock,
   Zap,
+  Target,
+  Trophy,
+  Award,
 } from 'lucide-react';
+import { TrackedOpportunity } from './types/tracker';
+import {
+  loadTrackedOpportunities,
+  syncTrackedWithOpportunities,
+  calculateTrackerStats,
+} from './services/trackerService';
+import { MetasTrackerModal } from './components/MetasTrackerModal';
 
 export interface Oportunidade {
   id: string;
@@ -192,7 +202,12 @@ function FormattedMessage({ text }: { text: string }) {
 export default function GrahamBuyZoneWorkspace() {
   // Controle de abas para telas pequenas (mobile/tablet)
   // No desktop, o Painel de Informações e o Copilot ficam lado a lado
-  const [mobileTab, setMobileTab] = useState<'oportunidades' | 'info' | 'copilot' | 'ambas'>('oportunidades');
+  const [mobileTab, setMobileTab] = useState<'oportunidades' | 'metas' | 'info' | 'copilot' | 'ambas'>('oportunidades');
+
+  // Sistema de Acompanhamento de Metas & Ciclo de Oportunidades (Graham Target Engine)
+  const [trackedList, setTrackedList] = useState<TrackedOpportunity[]>(() => loadTrackedOpportunities());
+  const [modalMetasAberto, setModalMetasAberto] = useState(false);
+  const [metaNotification, setMetaNotification] = useState<string | null>(null);
 
   // Chave personalizada do usuário (salva no localStorage para backup)
   const [userApiKey, setUserApiKey] = useState<string>(() => {
@@ -520,6 +535,31 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
     setMoeda(op.moeda);
   };
 
+  const carregarTickerPorSimbolo = (ticker: string) => {
+    const op = oportunidades.find((o) => o.ticker === ticker);
+    if (op) {
+      carregarAtivo(op);
+      setMobileTab('info');
+    }
+  };
+
+  // Sincronização automática do Acompanhamento de Metas (Graham Target Engine)
+  useEffect(() => {
+    if (oportunidades.length > 0) {
+      setTrackedList((prev) => {
+        const { updatedList, newlyCompleted } = syncTrackedWithOpportunities(prev, oportunidades);
+        if (newlyCompleted.length > 0) {
+          const nomes = newlyCompleted.map((i) => i.ticker).join(', ');
+          setMetaNotification(`🎯 Meta de Graham alcançada com sucesso: ${nomes}! Objetivo batido e salvo no histórico.`);
+          setTimeout(() => setMetaNotification(null), 10000);
+        }
+        return updatedList;
+      });
+    }
+  }, [oportunidades]);
+
+  const trackerStats = useMemo(() => calculateTrackerStats(trackedList), [trackedList]);
+
   // Motor de Valuation Graham-Buffett
   const calc = useMemo(() => {
     const isValidGraham = lpa > 0 && vpa > 0;
@@ -790,6 +830,30 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
   return (
     <div className="h-screen w-screen max-w-full bg-[#f8f9fa] text-[#1e293b] font-sans flex flex-col overflow-hidden select-none">
       
+      {/* Banner de Notificação de Metas Alcançadas */}
+      {metaNotification && (
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-3 py-1.5 flex items-center justify-between text-xs font-bold shadow-md z-30 shrink-0">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-300 shrink-0 animate-bounce" />
+            <span>{metaNotification}</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setModalMetasAberto(true)}
+              className="px-2 py-0.5 bg-white text-emerald-800 hover:bg-emerald-50 rounded text-[11px] font-extrabold cursor-pointer transition-colors shadow-xs"
+            >
+              Ver Histórico de Metas
+            </button>
+            <button
+              onClick={() => setMetaNotification(null)}
+              className="p-0.5 hover:bg-emerald-800 rounded cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================= */}
       {/* HEADER PRINCIPAL RESPONSIVO COM IDENTIDADE ANTITRADER      */}
       {/* ========================================================= */}
@@ -874,6 +938,22 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             <span className="hidden sm:inline">{copiado ? 'Copiado!' : 'Copiar'}</span>
           </button>
 
+          {/* Botão de Acompanhamento de Metas de Preço Graham */}
+          <button
+            onClick={() => setModalMetasAberto(true)}
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md border border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-xs font-bold text-blue-900 transition-colors cursor-pointer shadow-2xs"
+            title="Acompanhar variações de preço até o objetivo (Preço Justo Graham) e histórico de metas finalizadas"
+          >
+            <Target className="w-3.5 h-3.5 text-blue-600" />
+            <span className="hidden sm:inline">Metas:</span>
+            <span className="font-mono">{trackerStats.totalAtivas} Ativas</span>
+            {trackerStats.totalFinalizadas > 0 && (
+              <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-1.5 py-0.2 rounded-full">
+                🏆 {trackerStats.totalFinalizadas}
+              </span>
+            )}
+          </button>
+
           {/* Botão de Auditoria do Sistema */}
           <button
             onClick={abrirAuditoria}
@@ -953,6 +1033,16 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             <span className="hidden sm:inline">Atualizar</span>
           </button>
 
+          {/* Atalho de Metas na Barra */}
+          <button
+            onClick={() => setModalMetasAberto(true)}
+            className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-bold border border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100 shrink-0 cursor-pointer shadow-2xs transition-colors"
+            title="Abrir painel de acompanhamento de metas até o Preço Justo de Graham"
+          >
+            <Target className="w-2.5 h-2.5 text-blue-600" />
+            <span>Metas ({trackerStats.totalAtivas})</span>
+          </button>
+
           {/* Atalho para abrir a grade completa de oportunidades em telas menores */}
           <button
             onClick={() => setMobileTab('oportunidades')}
@@ -987,7 +1077,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                   key={op.id}
                   onClick={() => {
                     carregarAtivo(op);
-                    if (mobileTab === 'oportunidades') {
+                    if (mobileTab === 'oportunidades' || mobileTab === 'metas') {
                       setMobileTab('info');
                     }
                   }}
@@ -1089,6 +1179,34 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               {totalNaZona}
             </span>
           </button>
+
+          {/* Nova Aba de Metas no Mobile/Tablet */}
+          <button
+            onClick={() => setMobileTab('metas')}
+            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+              mobileTab === 'metas'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            <Target className="w-3.5 h-3.5 shrink-0" />
+            <span>Metas</span>
+            <span
+              className={`text-[9px] font-mono px-1 rounded-full ${
+                mobileTab === 'metas'
+                  ? 'bg-blue-800 text-white'
+                  : 'bg-blue-100 text-blue-800 font-bold'
+              }`}
+            >
+              {trackerStats.totalAtivas}
+            </span>
+            {trackerStats.totalFinalizadas > 0 && (
+              <span className="text-[9px] font-mono px-1 rounded-full bg-emerald-600 text-white font-bold">
+                🏆{trackerStats.totalFinalizadas}
+              </span>
+            )}
+          </button>
+
           <button
             onClick={() => setMobileTab('info')}
             className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
@@ -1395,13 +1513,174 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         )}
 
         {/* ========================================================= */}
+        {/* ABA MOBILE / TABLET: PAINEL DE METAS & CICLO DE VALOR     */}
+        {/* ========================================================= */}
+        {mobileTab === 'metas' && (
+          <section className="lg:hidden w-full flex-1 min-w-0 bg-[#f8fafc] flex flex-col p-3 sm:p-4 space-y-3.5 overflow-y-auto">
+            {/* Header com KPIs e Estatísticas Rápidas */}
+            <div className="bg-white border border-slate-300 rounded-xl p-3 sm:p-3.5 shadow-2xs space-y-2.5 shrink-0">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+                    <Target className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900 leading-tight">
+                      Acompanhamento de Metas de Valor
+                    </h2>
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      {trackerStats.totalAtivas} ativas • {trackerStats.totalFinalizadas} batidas • Taxa de acerto {trackerStats.taxaAcertoPercent}%
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setModalMetasAberto(true)}
+                  className="flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300 px-2.5 py-1 rounded-lg cursor-pointer transition-colors shadow-2xs"
+                >
+                  <span>Gerenciar Metas</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Mini KPIs */}
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center font-mono text-xs">
+                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                  <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">Em Andamento</span>
+                  <span className="font-bold text-blue-700">{trackerStats.totalAtivas}</span>
+                </div>
+                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                  <span className="block text-[9px] font-sans font-bold text-emerald-700 uppercase">Metas Batidas</span>
+                  <span className="font-extrabold text-emerald-800">🏆 {trackerStats.totalFinalizadas}</span>
+                </div>
+                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                  <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">Lucro Médio</span>
+                  <span className="font-bold text-emerald-700">+{trackerStats.lucroMedioRealizadoPercent}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista dos cards de metas */}
+            <div className="space-y-3 pb-8">
+              {trackedList.map((item) => {
+                const isFinalizada = item.status === 'FINALIZADA';
+                const moedaSimbolo = item.moeda === 'BRL' ? 'R$' : '$';
+                const ganhoAtualPct = item.precoEntrada > 0
+                  ? ((item.precoAtual - item.precoEntrada) / item.precoEntrada) * 100
+                  : 0;
+                const totalDeltaMeta = item.precoAlvo - item.precoEntrada;
+                const atualDelta = item.precoAtual - item.precoEntrada;
+                const progressoPct = totalDeltaMeta > 0
+                  ? Math.min(100, Math.max(0, (atualDelta / totalDeltaMeta) * 100))
+                  : (isFinalizada ? 100 : 0);
+
+                return (
+                  <div
+                    key={item.ticker}
+                    onClick={() => {
+                      carregarTickerPorSimbolo(item.ticker);
+                    }}
+                    className={`bg-white rounded-xl p-3.5 border-2 transition-all cursor-pointer shadow-2xs ${
+                      isFinalizada
+                        ? 'border-emerald-400 bg-gradient-to-r from-emerald-50/40 via-white to-white'
+                        : 'border-slate-200 hover:border-blue-400'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base font-black font-mono text-slate-900">{item.ticker}</span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase border ${
+                            item.mercado === 'B3'
+                              ? 'bg-amber-50 text-amber-900 border-amber-300'
+                              : 'bg-indigo-50 text-indigo-900 border-indigo-300'
+                          }`}>
+                            {item.mercado}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-600 font-medium truncate mt-0.5">{item.nome}</div>
+                      </div>
+
+                      <div className="text-right">
+                        {isFinalizada ? (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs uppercase">
+                            🏆 Objetivo Atingido
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-300 uppercase">
+                            Em Andamento
+                          </span>
+                        )}
+                        <div className={`text-xs font-bold font-mono mt-0.5 ${
+                          (isFinalizada ? item.lucroRealizadoPercent || 0 : ganhoAtualPct) >= 0
+                            ? 'text-emerald-700'
+                            : 'text-rose-600'
+                        }`}>
+                          {isFinalizada
+                            ? `+${item.lucroRealizadoPercent}% Lucro`
+                            : `${ganhoAtualPct >= 0 ? '+' : ''}${ganhoAtualPct.toFixed(1)}%`}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preços */}
+                    <div className="mt-2.5 grid grid-cols-3 gap-1 bg-slate-50 p-2 rounded-lg border border-slate-200 text-center font-mono text-xs">
+                      <div>
+                        <span className="block text-[8px] font-sans font-bold text-slate-400 uppercase">Entrada</span>
+                        <span className="font-bold text-slate-800">{moedaSimbolo} {item.precoEntrada.toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] font-sans font-bold text-slate-400 uppercase">{isFinalizada ? 'Saída' : 'Atual'}</span>
+                        <span className="font-extrabold text-slate-900">{moedaSimbolo} {(isFinalizada ? item.precoFinalizacao || item.precoAtual : item.precoAtual).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] font-sans font-bold text-blue-700 uppercase">Alvo Graham</span>
+                        <span className="font-bold text-blue-800">{moedaSimbolo} {item.precoAlvo.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {/* Barra de progresso */}
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-[11px] font-medium text-slate-600">
+                        <span>Progresso da meta</span>
+                        <span className="font-mono font-bold text-slate-900">{progressoPct.toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            isFinalizada ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-600 to-emerald-500'
+                          }`}
+                          style={{ width: `${progressoPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        carregarTickerPorSimbolo(item.ticker);
+                      }}
+                      className="w-full mt-2.5 py-1 px-3 bg-slate-900 hover:bg-blue-600 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <span>Ver Valuation &amp; Balanço</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ========================================================= */}
         {/* ABA DA ESQUERDA: ATIVO DESTRINCHADO & VALUATION           */}
         {/* ========================================================= */}
         <main
           className={`w-full ${
             mobileTab === 'ambas' ? 'md:w-1/2' : 'lg:w-1/2'
           } flex-1 min-w-0 bg-[#fbfcfd] flex flex-col p-3 sm:p-4 space-y-3.5 overflow-y-auto ${
-            mobileTab === 'copilot' || mobileTab === 'oportunidades' ? 'hidden lg:flex' : 'flex'
+            mobileTab === 'copilot' || mobileTab === 'oportunidades' || mobileTab === 'metas' ? 'hidden lg:flex' : 'flex'
           }`}
         >
           {/* Header da Ação Selecionada */}
@@ -1741,7 +2020,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           className={`w-full ${
             mobileTab === 'ambas' ? 'md:w-1/2' : 'lg:w-1/2'
           } flex-1 min-w-0 bg-[#fbfbfc] flex flex-col border-t lg:border-t-0 lg:border-l border-slate-300 overflow-hidden ${
-            mobileTab === 'info' || mobileTab === 'oportunidades' ? 'hidden lg:flex' : 'flex'
+            mobileTab === 'info' || mobileTab === 'oportunidades' || mobileTab === 'metas' ? 'hidden lg:flex' : 'flex'
           }`}
         >
           {/* Header do Chat */}
@@ -2286,6 +2565,17 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           </div>
         </div>
       )}
+
+      {/* Modal de Acompanhamento de Metas & Ciclo de Oportunidades */}
+      <MetasTrackerModal
+        isOpen={modalMetasAberto}
+        onClose={() => setModalMetasAberto(false)}
+        trackedList={trackedList}
+        setTrackedList={setTrackedList}
+        onSelectTickerForValuation={(t) => {
+          carregarTickerPorSimbolo(t);
+        }}
+      />
 
     </div>
   );
