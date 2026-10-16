@@ -382,10 +382,12 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
           setUltimaAtualizacaoEm(new Date().toLocaleTimeString('pt-BR'));
           const atualizado = data.find((o) => o.ticker === ativo.ticker);
           if (atualizado) {
+            const m: 'BRL' | 'USD' = atualizado.mercado === 'B3' ? 'BRL' : (atualizado.moeda || 'USD');
             setPreco(atualizado.preco);
             setLpa(atualizado.lpa);
             setVpa(atualizado.vpa);
-            setAtivo(atualizado);
+            setAtivo({ ...atualizado, moeda: m });
+            setMoeda(m);
           }
         }
       })
@@ -440,10 +442,12 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
           setOportunidades(data.opportunities);
           const atualizado = data.opportunities.find((o: any) => o.ticker === ativo.ticker);
           if (atualizado) {
+            const m: 'BRL' | 'USD' = atualizado.mercado === 'B3' ? 'BRL' : (atualizado.moeda || 'USD');
             setPreco(atualizado.preco);
             setLpa(atualizado.lpa);
             setVpa(atualizado.vpa);
-            setAtivo(atualizado);
+            setAtivo({ ...atualizado, moeda: m });
+            setMoeda(m);
           }
         }
         await fetchScanStatus();
@@ -506,15 +510,25 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
   // Carregar ativo selecionado (ao clicar numa oportunidade)
   // O chat é independente e NÃO é modificado ao clicar nas oportunidades
   const carregarAtivo = (op: Oportunidade) => {
-    setAtivo(op);
+    const m: 'BRL' | 'USD' = op.mercado === 'B3' ? 'BRL' : (op.moeda || 'USD');
+    setAtivo({ ...op, moeda: m });
     setPreco(op.preco);
     setLpa(op.lpa);
     setVpa(op.vpa);
     setG(op.g);
     setYieldAAA(op.yieldAAA);
     setMargem(op.margemSugerida || 30);
-    setMoeda(op.moeda);
+    setMoeda(m);
   };
+
+  // Garante que a moeda esteja sempre estritamente alinhada ao mercado do ativo (B3 sempre BRL / R$)
+  useEffect(() => {
+    if (ativo.mercado === 'B3' && moeda !== 'BRL') {
+      setMoeda('BRL');
+    } else if (ativo.mercado === 'US' && moeda !== 'USD') {
+      setMoeda('USD');
+    }
+  }, [ativo.ticker, ativo.mercado]);
 
   const carregarTickerPorSimbolo = (ticker: string) => {
     const op = oportunidades.find((o) => o.ticker === ticker);
@@ -598,8 +612,20 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
     };
   }, [preco, lpa, vpa, g, yieldAAA, margem]);
 
-  const fmtMoeda = (val: number) => {
-    return `${moeda === 'BRL' ? 'R$ ' : 'US$ '}${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const isAtivoB3 = (mercado?: string, m?: string, ticker?: string) => {
+    if (mercado === 'B3') return true;
+    if (m === 'BRL') return true;
+    if (ticker && /^(BBAS3|PETR4|BBDC4|CMIG4|CSAN3|SAPR11|CPLE6|VALE3|ITSA4|CXSE3|WEGE3|[A-Z]{4}\d{1,2})$/i.test(ticker)) return true;
+    return false;
+  };
+
+  const getMoedaSimbolo = (item: { mercado?: string; moeda?: string; ticker?: string }) => {
+    return isAtivoB3(item.mercado, item.moeda, item.ticker) ? 'R$' : '$';
+  };
+
+  const fmtMoeda = (val: number, customMoeda?: 'BRL' | 'USD') => {
+    const isReal = customMoeda === 'BRL' || isAtivoB3(ativo.mercado, ativo.moeda, ativo.ticker) || (ativo.mercado !== 'US' && moeda === 'BRL');
+    return `${isReal ? 'R$ ' : 'US$ '}${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const fmtPercent = (val: number) => {
@@ -866,11 +892,88 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
       </header>
 
       {/* ========================================================= */}
-      {/* BARRA SUPERIOR DE OPORTUNIDADES (CARROSSEL HORIZONTAL)     */}
-      {/* Aqui você clica no ativo lá em cima e ele abre destrinchado*/}
-      {/* na esquerda, com a IA do lado direito em 2 abas iguais!   */}
+      {/* SELETOR MOBILE / TABLET (MENU DE ABAS ENTRE O TOPO E AS OPORTUNIDADES) */}
       {/* ========================================================= */}
-      <div className="bg-white border-b border-slate-300 px-2 sm:px-3 py-1.5 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0 overflow-x-auto shadow-2xs">
+      <nav className="grid grid-cols-4 sm:grid-cols-5 lg:hidden w-full bg-slate-100 border-b border-slate-300 p-1 sm:p-1.5 gap-1 shrink-0 text-xs font-bold select-none overflow-hidden">
+        {/* Aba 1: Oportunidades */}
+        <button
+          onClick={() => setMobileTab('oportunidades')}
+          className={`py-1.5 px-0.5 sm:px-1 rounded-md text-[10px] sm:text-xs font-bold tracking-tight flex items-center justify-center gap-0.5 sm:gap-1 cursor-pointer transition-all border active:scale-95 min-w-0 ${
+            mobileTab === 'oportunidades'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Oportunidades</span>
+        </button>
+
+        {/* Aba 2: Metas */}
+        <button
+          onClick={() => setMobileTab('metas')}
+          className={`py-1.5 px-0.5 sm:px-1 rounded-md text-[10px] sm:text-xs font-bold tracking-tight flex items-center justify-center gap-0.5 sm:gap-1 cursor-pointer transition-all border active:scale-95 min-w-0 ${
+            mobileTab === 'metas'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          <Target className="w-3.5 h-3.5 shrink-0" />
+          <span>Metas</span>
+          <span className={`text-[9px] font-mono px-1 rounded-full shrink-0 ${
+            mobileTab === 'metas' ? 'bg-blue-800 text-white' : 'bg-blue-100 text-blue-900 font-bold'
+          }`}>
+            {trackerStats.totalAtivas}
+          </span>
+        </button>
+
+        {/* Aba 3: Valuation */}
+        <button
+          onClick={() => setMobileTab('info')}
+          className={`py-1.5 px-0.5 sm:px-1 rounded-md text-[10px] sm:text-xs font-bold tracking-tight flex items-center justify-center gap-0.5 sm:gap-1 cursor-pointer transition-all border active:scale-95 min-w-0 ${
+            mobileTab === 'info'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+          <span>Valuation</span>
+        </button>
+
+        {/* Aba 4: AntiTrader AI */}
+        <button
+          onClick={() => setMobileTab('copilot')}
+          className={`py-1.5 px-0.5 sm:px-1 rounded-md text-[10px] sm:text-xs font-bold tracking-tight flex items-center justify-center gap-0.5 sm:gap-1 cursor-pointer transition-all border active:scale-95 min-w-0 ${
+            mobileTab === 'copilot'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          <Bot className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">AntiTrader AI</span>
+        </button>
+
+        {/* Aba 5: Lado a Lado (Em tablets sm: até lg:) */}
+        <button
+          onClick={() => setMobileTab('ambas')}
+          className={`hidden sm:flex py-1.5 px-1 rounded-md text-xs font-bold items-center justify-center gap-1 cursor-pointer transition-all border active:scale-95 min-w-0 ${
+            mobileTab === 'ambas'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+          title="Modo Tablet: Visualizar Valuation e AntiTrader AI lado a lado"
+        >
+          <Layers className="w-3.5 h-3.5 shrink-0" />
+          <span>Lado a Lado</span>
+        </button>
+      </nav>
+
+      {/* ========================================================= */}
+      {/* BARRA SUPERIOR DE OPORTUNIDADES (CARROSSEL HORIZONTAL)     */}
+      {/* Visível no desktop sempre, e no mobile apenas na aba Oportunidades */}
+      {/* ========================================================= */}
+      <div className={`bg-white border-b border-slate-300 px-2 sm:px-3 py-1.5 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0 overflow-x-auto shadow-2xs ${
+        mobileTab !== 'oportunidades' ? 'hidden lg:flex' : 'flex'
+      }`}>
         {/* Título & Filtros da Peneira */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <div className="flex items-center gap-1 font-bold text-xs text-slate-900 tracking-tight uppercase">
@@ -903,19 +1006,28 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             <span className="font-bold text-emerald-400 tracking-wider">{countdownStr}</span>
           </button>
 
-          <button
-            onClick={() => setFiltroZonaApenas(!filtroZonaApenas)}
-            className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-colors shrink-0 shadow-2xs ${
-              filtroZonaApenas
-                ? 'bg-emerald-600 border-emerald-700 text-white shadow-xs'
-                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-            }`}
-            title={filtroZonaApenas ? 'Mostrando apenas ativos estritamente na Zona de Compra' : 'Clique para ver todas as ações monitoradas'}
-          >
-            <Check className={`w-3 h-3 ${filtroZonaApenas ? 'text-white' : 'text-slate-400'}`} />
-            <span className="hidden sm:inline">Peneira: </span>
-            <span>{filtroZonaApenas ? 'Na Zona' : 'Todos'}</span>
-          </button>
+          {/* Seletor Segmentado: Todos vs Oportunidades (Na Zona) */}
+          <div className="inline-flex rounded border border-slate-300 p-0.5 bg-slate-100 text-[10px] shrink-0">
+            <button
+              onClick={() => setFiltroZonaApenas(false)}
+              className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors ${
+                !filtroZonaApenas ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setFiltroZonaApenas(true)}
+              className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors flex items-center gap-0.5 ${
+                filtroZonaApenas ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>Oportunidades</span>
+              <span className={`text-[8px] px-1 rounded-full ${filtroZonaApenas ? 'bg-emerald-800 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+                {totalNaZona}
+              </span>
+            </button>
+          </div>
 
           {/* Botão de Refresh Rápido na barra */}
           <button
@@ -965,7 +1077,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               const { zona, fair } = calcularZonaPreco(op);
               const naZona = op.preco <= zona;
               const margemPct = op.preco > 0 ? ((zona - op.preco) / op.preco) * 100 : 0;
-              const moedaSimbolo = op.moeda === 'BRL' ? 'R$' : '$';
+              const moedaSimbolo = getMoedaSimbolo(op);
 
               return (
                 <button
@@ -1048,110 +1160,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* SELETOR MOBILE / TABLET (APARECE EM CELULAR E TABLET <lg) */}
-      {/* ========================================================= */}
-      {/* ========================================================= */}
-      {/* SELETOR MOBILE / TABLET (APARECE EM CELULAR E TABLET <lg) */}
-      {/* ========================================================= */}
-      <nav className="flex lg:hidden bg-slate-100 border-b border-slate-300 px-1.5 sm:px-3 py-1 items-center justify-start sm:justify-center text-xs font-bold shrink-0 overflow-x-auto scrollbar-none gap-1 sm:gap-1.5 touch-pan-x">
-        {/* Aba 1: Oportunidades */}
-        <button
-          onClick={() => setMobileTab('oportunidades')}
-          className={`px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
-            mobileTab === 'oportunidades'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-          }`}
-        >
-          <Activity className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden sm:inline">Oportunidades</span>
-          <span className="sm:hidden">Oportun.</span>
-          <span
-            className={`text-[9px] font-mono px-1 rounded-full ${
-              mobileTab === 'oportunidades'
-                ? 'bg-blue-800 text-white'
-                : 'bg-emerald-100 text-emerald-800 font-bold'
-            }`}
-          >
-            {totalNaZona}
-          </span>
-        </button>
 
-        {/* Aba 2: Metas */}
-        <button
-          onClick={() => setMobileTab('metas')}
-          className={`px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
-            mobileTab === 'metas'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-          }`}
-        >
-          <Target className="w-3.5 h-3.5 shrink-0" />
-          <span>Metas</span>
-          <span
-            className={`text-[9px] font-mono px-1 rounded-full ${
-              mobileTab === 'metas'
-                ? 'bg-blue-800 text-white'
-                : 'bg-blue-100 text-blue-800 font-bold'
-            }`}
-          >
-            {trackerStats.totalAtivas}
-          </span>
-          {trackerStats.totalFinalizadas > 0 && (
-            <span className="text-[9px] font-mono px-1 rounded-full bg-emerald-600 text-white font-bold">
-              🏆{trackerStats.totalFinalizadas}
-            </span>
-          )}
-        </button>
-
-        {/* Aba 3: Valuation do ativo selecionado */}
-        <button
-          onClick={() => setMobileTab('info')}
-          className={`px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
-            mobileTab === 'info'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-          }`}
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-          <span>Valuation</span>
-          <span
-            className={`text-[9px] font-mono px-1 rounded ${
-              mobileTab === 'info' ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-700'
-            }`}
-          >
-            {ativo.ticker}
-          </span>
-        </button>
-
-        {/* Aba 4: AntiTrader AI */}
-        <button
-          onClick={() => setMobileTab('copilot')}
-          className={`px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
-            mobileTab === 'copilot'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-          }`}
-        >
-          <Bot className="w-3.5 h-3.5 shrink-0" />
-          <span>AntiTrader AI</span>
-        </button>
-
-        {/* Aba 5: Ambas (Visível em Tablets e telas maiores) */}
-        <button
-          onClick={() => setMobileTab('ambas')}
-          className={`hidden sm:flex px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold items-center gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
-            mobileTab === 'ambas'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-          }`}
-          title="Modo Tablet: Visualizar Valuation e AntiTrader AI lado a lado"
-        >
-          <Layers className="w-3.5 h-3.5 shrink-0" />
-          <span>Lado a Lado</span>
-        </button>
-      </nav>
 
       {/* ========================================================= */}
       {/* ÁREA PRINCIPAL: RESPONSIVA (MOBILE, TABLET E DESKTOP)     */}
@@ -1227,17 +1236,34 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                     <span className="font-bold text-emerald-400 tracking-wider">{countdownStr}</span>
                   </button>
 
-                  <button
-                    onClick={() => setFiltroZonaApenas(!filtroZonaApenas)}
-                    className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
-                      filtroZonaApenas
-                        ? 'bg-emerald-600 border-emerald-700 text-white shadow-xs'
-                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    <Check className={`w-3 h-3 ${filtroZonaApenas ? 'text-white' : 'text-slate-400'}`} />
-                    <span>{filtroZonaApenas ? 'Na Zona' : 'Todos'}</span>
-                  </button>
+                  {/* Seletor Segmentado: Todos vs Oportunidades */}
+                  <div className="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-100 text-xs shadow-2xs">
+                    <button
+                      onClick={() => setFiltroZonaApenas(false)}
+                      className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                        !filtroZonaApenas
+                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Todos ({oportunidades.length})
+                    </button>
+                    <button
+                      onClick={() => setFiltroZonaApenas(true)}
+                      className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                        filtroZonaApenas
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>Oportunidades</span>
+                      <span className={`text-[9px] px-1 rounded-full ${
+                        filtroZonaApenas ? 'bg-emerald-800 text-white' : 'bg-emerald-100 text-emerald-800 font-bold'
+                      }`}>
+                        {totalNaZona}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1264,7 +1290,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                   const { zona, fair } = calcularZonaPreco(op);
                   const naZona = op.preco <= zona;
                   const margemPct = op.preco > 0 ? ((zona - op.preco) / op.preco) * 100 : 0;
-                  const moedaSimbolo = op.moeda === 'BRL' ? 'R$' : '$';
+                  const moedaSimbolo = getMoedaSimbolo(op);
 
                   return (
                     <div
@@ -1466,7 +1492,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             <div className="space-y-3 pb-8">
               {trackedList.map((item) => {
                 const isFinalizada = item.status === 'FINALIZADA';
-                const moedaSimbolo = item.moeda === 'BRL' ? 'R$' : '$';
+                const moedaSimbolo = getMoedaSimbolo(item);
                 const ganhoAtualPct = item.precoEntrada > 0
                   ? ((item.precoAtual - item.precoEntrada) / item.precoEntrada) * 100
                   : 0;
@@ -1851,16 +1877,27 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                 Simulador de Parâmetros (Ajuste em Tempo Real)
               </span>
               <button
-                onClick={() => setMoeda(m => m === 'BRL' ? 'USD' : 'BRL')}
-                className="text-xs font-mono px-2 py-0.5 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800 cursor-pointer"
+                onClick={() => {
+                  if (ativo.mercado !== 'B3') {
+                    setMoeda(m => m === 'BRL' ? 'USD' : 'BRL');
+                  }
+                }}
+                className={`text-xs font-mono px-2 py-0.5 rounded border border-slate-300 ${
+                  ativo.mercado === 'B3'
+                    ? 'bg-slate-100 text-slate-700 cursor-default'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-800 cursor-pointer'
+                }`}
+                title={ativo.mercado === 'B3' ? 'Ativo da B3 cotado obrigatoriamente em Reais (R$)' : 'Alternar moeda da simulação'}
               >
-                Moeda: {moeda}
+                Moeda: {ativo.mercado === 'B3' ? 'BRL (R$)' : moeda}
               </button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
               <div className="p-2 bg-slate-50 rounded-md border border-slate-300">
-                <label className="text-[10px] text-slate-600 block mb-1 font-sans">Cotação Atual ({moeda})</label>
+                <label className="text-[10px] text-slate-600 block mb-1 font-sans">
+                  Cotação Atual ({ativo.mercado === 'B3' ? 'BRL (R$)' : moeda})
+                </label>
                 <input
                   type="number"
                   step="any"
@@ -1871,7 +1908,9 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               </div>
 
               <div className="p-2 bg-slate-50 rounded-md border border-slate-300">
-                <label className="text-[10px] text-slate-600 block mb-1 font-sans">LPA (Lucro por Ação)</label>
+                <label className="text-[10px] text-slate-600 block mb-1 font-sans">
+                  LPA (Lucro por Ação - {isAtivoB3(ativo.mercado, ativo.moeda, ativo.ticker) ? 'R$' : '$'})
+                </label>
                 <input
                   type="number"
                   step="any"
@@ -1882,7 +1921,9 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               </div>
 
               <div className="p-2 bg-slate-50 rounded-md border border-slate-300">
-                <label className="text-[10px] text-slate-600 block mb-1 font-sans">VPA (Patrimônio Líq/Ação)</label>
+                <label className="text-[10px] text-slate-600 block mb-1 font-sans">
+                  VPA (Patrimônio Líq/Ação - {isAtivoB3(ativo.mercado, ativo.moeda, ativo.ticker) ? 'R$' : '$'})
+                </label>
                 <input
                   type="number"
                   step="any"
@@ -2246,7 +2287,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                       {auditDiagnostics?.items ? (
                         auditDiagnostics.items.map((item: any) => {
                           const isCompra = item.status === 'ZONA DE COMPRA';
-                          const mSimb = item.moeda === 'BRL' ? 'R$' : 'US$';
+                          const mSimb = isAtivoB3(item.mercado, item.moeda, item.ticker) ? 'R$' : 'US$';
                           const varSinal = item.variacaoVsBase >= 0 ? '+' : '';
                           return (
                             <tr key={item.ticker} className="hover:bg-slate-50 transition-colors">
