@@ -26,6 +26,11 @@ import {
   Target,
   Trophy,
   Award,
+  Search,
+  PanelLeft,
+  PanelRight,
+  GripVertical,
+  ChevronLeft,
 } from 'lucide-react';
 import { TrackedOpportunity } from './types/tracker';
 import {
@@ -266,6 +271,69 @@ export default function GrahamBuyZoneWorkspace() {
   const [filtroZonaApenas, setFiltroZonaApenas] = useState(true);
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>(OPORTUNIDADES_SETUP);
   const [carregandoOportunidades, setCarregandoOportunidades] = useState(false);
+  const [buscaTicker, setBuscaTicker] = useState('');
+
+  // Larguras Customizáveis dos Painéis (Three-Panel Layout para Notebooks e Desktops)
+  const [leftWidth, setLeftWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('antitrader_panel_left_width');
+      return saved ? Math.max(240, Math.min(480, parseInt(saved, 10))) : 320;
+    } catch {
+      return 320;
+    }
+  });
+
+  const [rightWidth, setRightWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('antitrader_panel_right_width');
+      return saved ? Math.max(280, Math.min(580, parseInt(saved, 10))) : 380;
+    } catch {
+      return 380;
+    }
+  });
+
+  const [painelEsquerdoRecolhido, setPainelEsquerdoRecolhido] = useState(false);
+  const [painelDireitoRecolhido, setPainelDireitoRecolhido] = useState(false);
+  const [redimensionando, setRedimensionando] = useState<'left' | 'right' | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Hook de arrasto suave dos divisores redimensionáveis
+  useEffect(() => {
+    if (!redimensionando) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (redimensionando === 'left') {
+        const novo = Math.max(240, Math.min(Math.min(500, window.innerWidth - 650), e.clientX));
+        setLeftWidth(novo);
+      } else if (redimensionando === 'right') {
+        const novo = Math.max(280, Math.min(Math.min(580, window.innerWidth - 650), window.innerWidth - e.clientX));
+        setRightWidth(novo);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (redimensionando === 'left') {
+        localStorage.setItem('antitrader_panel_left_width', leftWidth.toString());
+      } else if (redimensionando === 'right') {
+        localStorage.setItem('antitrader_panel_right_width', rightWidth.toString());
+      }
+      setRedimensionando(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [redimensionando, leftWidth, rightWidth]);
 
   // Varredura Diária Programada (19:00 Horário de Brasília) & Contagem Regressiva
   const [scanStatus, setScanStatus] = useState<{
@@ -766,7 +834,13 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         if (filtroMercado !== 'TODOS' && op.mercado !== filtroMercado) return false;
         if (filtroZonaApenas) {
           const { zona } = calcularZonaPreco(op);
-          return op.preco <= zona;
+          if (op.preco > zona) return false;
+        }
+        if (buscaTicker.trim()) {
+          const q = buscaTicker.trim().toLowerCase();
+          const matchTicker = op.ticker.toLowerCase().includes(q);
+          const matchNome = op.nome.toLowerCase().includes(q);
+          if (!matchTicker && !matchNome) return false;
         }
         return true;
       })
@@ -778,7 +852,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         const descB = b.preco > 0 ? (zB - b.preco) / b.preco : 0;
         return descB - descA;
       });
-  }, [oportunidades, filtroMercado, filtroZonaApenas]);
+  }, [oportunidades, filtroMercado, filtroZonaApenas, buscaTicker]);
 
   return (
     <div className="h-screen w-screen max-w-full bg-[#f8f9fa] text-[#1e293b] font-sans flex flex-col overflow-hidden select-none">
@@ -888,6 +962,37 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               <span className="sm:hidden text-[10px] font-bold text-emerald-700">Online</span>
             </span>
           </button>
+
+          {/* Toggles de Painéis no Desktop / Notebook para Personalizar Espaço */}
+          <div className="hidden lg:flex items-center gap-1 border-l border-slate-300 pl-1.5 ml-0.5">
+            <button
+              type="button"
+              onClick={() => setPainelEsquerdoRecolhido(!painelEsquerdoRecolhido)}
+              className={`p-1 px-1.5 rounded-md border text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1 ${
+                painelEsquerdoRecolhido
+                  ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
+              title={painelEsquerdoRecolhido ? 'Expandir painel de oportunidades' : 'Recolher painel de oportunidades para dar mais espaço ao valuation'}
+            >
+              <PanelLeft className="w-3.5 h-3.5 text-blue-600" />
+              <span className="text-[10px] hidden xl:inline">Oportunidades</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPainelDireitoRecolhido(!painelDireitoRecolhido)}
+              className={`p-1 px-1.5 rounded-md border text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1 ${
+                painelDireitoRecolhido
+                  ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
+              title={painelDireitoRecolhido ? 'Expandir painel AntiTrader AI' : 'Recolher painel AntiTrader AI para focar no valuation'}
+            >
+              <PanelRight className="w-3.5 h-3.5 text-blue-600" />
+              <span className="text-[10px] hidden xl:inline">IA</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -967,257 +1072,125 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         </button>
       </nav>
 
-      {/* ========================================================= */}
-      {/* BARRA SUPERIOR DE OPORTUNIDADES (CARROSSEL HORIZONTAL)     */}
-      {/* Visível no desktop sempre, e no mobile apenas na aba Oportunidades */}
-      {/* ========================================================= */}
-      <div className={`bg-white border-b border-slate-300 px-2 sm:px-3 py-1.5 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0 overflow-x-auto shadow-2xs ${
-        mobileTab !== 'oportunidades' ? 'hidden lg:flex' : 'flex'
-      }`}>
-        {/* Título & Filtros da Peneira */}
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          <div className="flex items-center gap-1 font-bold text-xs text-slate-900 tracking-tight uppercase">
-            <Activity className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span className="whitespace-nowrap hidden sm:inline">Oportunidades:</span>
-          </div>
 
-          <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded border border-slate-300">
-            {(['TODOS', 'B3', 'US'] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setFiltroMercado(m)}
-                className={`px-1.5 py-0.2 rounded text-[10px] font-bold cursor-pointer transition-colors ${
-                  filtroMercado === m ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-
-          {/* Relógio Pequenininho de Contagem Regressiva para a Varredura das 19h BRT */}
-          <button
-            onClick={() => setModalScanInfoAberto(true)}
-            className="flex items-center gap-1 bg-[#0f172a] text-white px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-mono border border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs"
-            title="Próxima varredura geral diária às 19:00 de Brasília. Clique para auditar ou rodar varredura."
-          >
-            <Clock className="w-2.5 h-2.5 text-emerald-400 animate-pulse shrink-0" />
-            <span className="text-slate-400 text-[9px] font-medium hidden sm:inline">19h:</span>
-            <span className="font-bold text-emerald-400 tracking-wider">{countdownStr}</span>
-          </button>
-
-          {/* Seletor Segmentado: Todos vs Oportunidades (Na Zona) */}
-          <div className="inline-flex rounded border border-slate-300 p-0.5 bg-slate-100 text-[10px] shrink-0">
-            <button
-              onClick={() => setFiltroZonaApenas(false)}
-              className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors ${
-                !filtroZonaApenas ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Todos
-            </button>
-            <button
-              onClick={() => setFiltroZonaApenas(true)}
-              className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors flex items-center gap-0.5 ${
-                filtroZonaApenas ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span>Oportunidades</span>
-              <span className={`text-[8px] px-1 rounded-full ${filtroZonaApenas ? 'bg-emerald-800 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
-                {totalNaZona}
-              </span>
-            </button>
-          </div>
-
-          {/* Botão de Refresh Rápido na barra */}
-          <button
-            onClick={fetchOportunidades}
-            disabled={carregandoOportunidades}
-            className="p-1 px-1.5 text-slate-600 hover:text-blue-700 bg-white hover:bg-blue-50 cursor-pointer rounded border border-slate-300 hover:border-blue-300 shrink-0 hidden md:flex items-center gap-1 text-[10px] font-bold transition-colors shadow-2xs"
-            title="Atualizar cotações de tela ao vivo do pregão para as ações da barra"
-          >
-            <RefreshCw className={`w-2.5 h-2.5 text-blue-600 ${carregandoOportunidades ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Atualizar</span>
-          </button>
-
-          {/* Atalho de Metas na Barra */}
-          <button
-            onClick={() => setModalMetasAberto(true)}
-            className="hidden lg:flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-bold border border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100 shrink-0 cursor-pointer shadow-2xs transition-colors"
-            title="Abrir painel de acompanhamento de metas até o Preço Justo de Graham"
-          >
-            <Target className="w-2.5 h-2.5 text-blue-600" />
-            <span>Metas ({trackerStats.totalAtivas})</span>
-          </button>
-
-          {/* Atalho para abrir a grade completa de oportunidades em telas médias */}
-          <button
-            onClick={() => setMobileTab('oportunidades')}
-            className={`hidden sm:flex lg:hidden items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 cursor-pointer transition-colors ${
-              mobileTab === 'oportunidades'
-                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'
-            }`}
-            title="Ver grade completa e comparativo de todas as oportunidades"
-          >
-            <Activity className="w-2.5 h-2.5" />
-            <span>Grade ({oportunidadesFiltradas.length})</span>
-          </button>
-        </div>
-
-        {/* Lista Horizontal de Cards de Oportunidades - Peneira da Zona de Compra */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 flex-1 min-w-0">
-          {oportunidadesFiltradas.length === 0 ? (
-            <div className="text-xs text-slate-500 italic py-1 px-2">
-              Nenhum ativo encontrado com os filtros selecionados.
-            </div>
-          ) : (
-            oportunidadesFiltradas.map((op) => {
-              const isSelected = ativo.ticker === op.ticker;
-              const { zona, fair } = calcularZonaPreco(op);
-              const naZona = op.preco <= zona;
-              const margemPct = op.preco > 0 ? ((zona - op.preco) / op.preco) * 100 : 0;
-              const moedaSimbolo = getMoedaSimbolo(op);
-
-              return (
-                <button
-                  key={op.id}
-                  onClick={() => {
-                    carregarAtivo(op);
-                    if (mobileTab === 'oportunidades' || mobileTab === 'metas') {
-                      setMobileTab('info');
-                    }
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono shrink-0 flex items-center gap-2 cursor-pointer transition-all border-2 text-left ${
-                    isSelected
-                      ? 'bg-blue-600 text-white font-bold border-blue-600 shadow-sm'
-                      : naZona
-                      ? 'bg-emerald-50/90 border-emerald-400 text-emerald-950 hover:bg-emerald-100 hover:border-emerald-500'
-                      : 'bg-[#f8fafc] border-slate-300 text-slate-800 hover:bg-slate-100 hover:border-slate-400'
-                  }`}
-                  title={`${op.nome} | Preço: ${moedaSimbolo} ${op.preco.toFixed(2)} | Zona: ${moedaSimbolo} ${zona.toFixed(2)} | Justo: ${moedaSimbolo} ${fair.toFixed(2)}`}
-                >
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-bold">{op.ticker}</span>
-                      <span className={`text-[8px] font-bold px-1 rounded uppercase ${
-                        isSelected
-                          ? 'bg-blue-800 text-white'
-                          : op.mercado === 'B3'
-                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                          : 'bg-indigo-100 text-indigo-900 border border-indigo-300'
-                      }`}>
-                        {op.mercado}
-                      </span>
-                      {naZona ? (
-                        <span className={`text-[8px] font-extrabold px-1 rounded uppercase ${
-                          isSelected ? 'bg-white text-blue-700' : 'bg-emerald-600 text-white'
-                        }`}>
-                          NA ZONA
-                        </span>
-                      ) : (
-                        <span className={`text-[8px] font-medium px-1 rounded uppercase ${
-                          isSelected ? 'bg-blue-400/40 text-white' : 'bg-slate-200 text-slate-700'
-                        }`}>
-                          RADAR
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`text-[10px] font-bold ${isSelected ? 'text-white' : 'text-slate-800'}`}>
-                        {moedaSimbolo} {op.preco.toFixed(2)}
-                      </span>
-                      <span className={`text-[9px] font-semibold ${
-                        isSelected
-                          ? 'text-blue-100'
-                          : naZona
-                          ? 'text-emerald-700'
-                          : 'text-slate-500'
-                      }`}>
-                        Zona: {moedaSimbolo} {zona.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className={`text-right text-[9px] border-l pl-1.5 leading-tight ${
-                    isSelected ? 'border-blue-400 text-blue-100' : 'border-slate-300 text-slate-600'
-                  }`}>
-                    <span className={`block font-bold ${
-                      isSelected
-                        ? 'text-white'
-                        : naZona
-                        ? 'text-emerald-700'
-                        : 'text-slate-600'
-                    }`}>
-                      {naZona ? `+${margemPct.toFixed(0)}% margem` : 'Acima'}
-                    </span>
-                    <span>DY {op.dividendYield}%</span>
-                    <span className="block font-medium">P/L {op.pl.toFixed(1)}x</span>
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
-      </div>
 
 
 
       {/* ========================================================= */}
-      {/* ÁREA PRINCIPAL: RESPONSIVA (MOBILE, TABLET E DESKTOP)     */}
+      {/* ÁREA PRINCIPAL: THREE-PANEL LAYOUT (CUSTOMIZÁVEL NO NOTEBOOK/DESKTOP) */}
       {/* ========================================================= */}
       <div
-        className={`flex-1 flex ${
-          mobileTab === 'ambas' ? 'flex-col md:flex-row' : 'flex-col lg:flex-row'
-        } w-full max-w-full overflow-hidden divide-y ${
-          mobileTab === 'ambas' ? 'md:divide-y-0 md:divide-x' : 'lg:divide-y-0 lg:divide-x'
-        } divide-slate-300 min-h-0`}
+        className={`flex-1 flex flex-col lg:flex-row w-full max-w-full overflow-hidden min-h-0 bg-slate-100 relative ${
+          redimensionando ? 'select-none' : ''
+        }`}
       >
         {/* ========================================================= */}
-        {/* ABA MOBILE / TABLET: PAINEL DE OPORTUNIDADES DEDICADO     */}
-        {/* Visível quando a aba "Oportunidades" está selecionada     */}
+        {/* PAINEL 1 (ESQUERDA): OPORTUNIDADES & PENEIRA GRAHAM       */}
+        {/* Customizável no desktop/notebook e aba no mobile/tablet    */}
         {/* ========================================================= */}
-        {mobileTab === 'oportunidades' && (
-          <section className="lg:hidden w-full flex-1 min-w-0 bg-[#f8fafc] flex flex-col p-3 sm:p-4 space-y-3.5 overflow-y-auto">
-            {/* Header do Painel com Controles e Filtros */}
-            <div className="bg-white border border-slate-300 rounded-xl p-3 sm:p-3.5 shadow-2xs space-y-2.5 shrink-0">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
-                    <Activity className="w-4 h-4" />
+        {painelEsquerdoRecolhido && isDesktop ? (
+          <aside className="hidden lg:flex w-9 bg-slate-100 border-r border-slate-300 flex-col items-center py-3 justify-between shrink-0 select-none">
+            <button
+              onClick={() => setPainelEsquerdoRecolhido(false)}
+              className="p-1.5 hover:bg-white rounded border border-transparent hover:border-slate-300 text-slate-600 hover:text-blue-600 transition-colors cursor-pointer"
+              title="Expandir Painel de Oportunidades"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+            <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
+              <span>Oportunidades</span>
+              <span className="text-[9px] bg-emerald-600 text-white px-1 py-0.5 rounded-full font-mono">{totalNaZona}</span>
+            </span>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          </aside>
+        ) : (
+          <section
+            style={{ width: isDesktop && !painelEsquerdoRecolhido ? `${leftWidth}px` : undefined }}
+            className={`w-full ${
+              isDesktop ? 'shrink-0' : 'flex-1'
+            } min-w-0 bg-[#f8fafc] flex flex-col border-r border-slate-300 h-full overflow-hidden ${
+              mobileTab !== 'oportunidades' ? 'hidden lg:flex' : 'flex'
+            }`}
+          >
+            {/* Header Fixo do Painel de Oportunidades */}
+            <div className="bg-white border-b border-slate-300 p-2.5 sm:p-3 shadow-2xs space-y-2 shrink-0">
+              <div className="flex items-center justify-between gap-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="w-6 h-6 rounded-md bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+                    <Activity className="w-3.5 h-3.5" />
                   </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900 leading-tight">
-                      Peneira de Oportunidades Graham
+                  <div className="min-w-0">
+                    <h2 className="text-xs font-bold text-slate-900 leading-none truncate">
+                      Peneira Graham
                     </h2>
-                    <p className="text-[11px] text-slate-500 font-mono">
-                      {oportunidadesFiltradas.length} ativos filtrados • {totalNaZona} na Zona de Compra
-                    </p>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {oportunidadesFiltradas.length} ativos • {totalNaZona} na Zona
+                    </span>
                   </div>
                 </div>
 
-                {/* Botão de Refresh */}
-                <button
-                  onClick={fetchOportunidades}
-                  disabled={carregandoOportunidades}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg shadow-2xs cursor-pointer transition-colors"
-                >
-                  <RefreshCw className={`w-3 h-3 text-blue-600 ${carregandoOportunidades ? 'animate-spin' : ''}`} />
-                  <span>{carregandoOportunidades ? 'Atualizando...' : 'Atualizar'}</span>
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={fetchOportunidades}
+                    disabled={carregandoOportunidades}
+                    className="p-1 text-slate-600 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 rounded border border-slate-200 transition-colors cursor-pointer"
+                    title="Atualizar cotações"
+                  >
+                    <RefreshCw className={`w-3 h-3 text-blue-600 ${carregandoOportunidades ? 'animate-spin' : ''}`} />
+                  </button>
+
+                  <button
+                    onClick={() => setModalMetasAberto(true)}
+                    className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100 cursor-pointer transition-colors"
+                    title="Acompanhamento de metas"
+                  >
+                    <Target className="w-3 h-3 text-blue-600" />
+                    <span>{trackerStats.totalAtivas}</span>
+                  </button>
+
+                  {/* Botão de Recolher Painel no Desktop */}
+                  <button
+                    onClick={() => setPainelEsquerdoRecolhido(true)}
+                    className="hidden lg:flex p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
+                    title="Recolher painel esquerdo para dar mais espaço ao valuation no notebook"
+                  >
+                    <PanelLeft className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
-              {/* Linha de Filtros: Mercado e Peneira */}
-              <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-slate-100 text-xs">
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] font-mono text-slate-500 mr-1">Mercado:</span>
+              {/* Barra de Busca Rápida por Ticker ou Empresa */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={buscaTicker}
+                  onChange={(e) => setBuscaTicker(e.target.value)}
+                  placeholder="Buscar ticker ou empresa (ex: BBAS3, PFE)..."
+                  className="w-full pl-8 pr-7 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-all text-slate-800 font-medium placeholder:text-slate-400"
+                />
+                {buscaTicker && (
+                  <button
+                    onClick={() => setBuscaTicker('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-0.5"
+                    title="Limpar busca"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filtros Compactos: Mercado + Na Zona + Relógio 19h */}
+              <div className="flex items-center justify-between gap-1 flex-wrap pt-1 text-[10px]">
+                <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded border border-slate-200">
                   {(['TODOS', 'B3', 'US'] as const).map((m) => (
                     <button
                       key={m}
                       onClick={() => setFiltroMercado(m)}
-                      className={`px-2 py-0.5 rounded text-xs font-bold cursor-pointer transition-colors ${
+                      className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors ${
                         filtroMercado === m
                           ? 'bg-blue-600 text-white shadow-2xs'
-                          : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       {m}
@@ -1225,67 +1198,63 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                   ))}
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="inline-flex rounded border border-slate-300 p-0.5 bg-slate-100">
                   <button
-                    onClick={() => setModalScanInfoAberto(true)}
-                    className="flex items-center gap-1 bg-[#0f172a] text-white px-2 py-0.5 rounded text-[10px] font-mono border border-slate-700 cursor-pointer shadow-2xs"
-                    title="Próxima varredura geral diária às 19:00 de Brasília"
+                    onClick={() => setFiltroZonaApenas(false)}
+                    className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors ${
+                      !filtroZonaApenas
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   >
-                    <Clock className="w-2.5 h-2.5 text-emerald-400 animate-pulse shrink-0" />
-                    <span className="text-slate-400 text-[9px] font-medium hidden sm:inline">19h:</span>
-                    <span className="font-bold text-emerald-400 tracking-wider">{countdownStr}</span>
+                    Todos ({oportunidades.length})
                   </button>
-
-                  {/* Seletor Segmentado: Todos vs Oportunidades */}
-                  <div className="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-100 text-xs shadow-2xs">
-                    <button
-                      onClick={() => setFiltroZonaApenas(false)}
-                      className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
-                        !filtroZonaApenas
-                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Todos ({oportunidades.length})
-                    </button>
-                    <button
-                      onClick={() => setFiltroZonaApenas(true)}
-                      className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                        filtroZonaApenas
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      <span>Oportunidades</span>
-                      <span className={`text-[9px] px-1 rounded-full ${
-                        filtroZonaApenas ? 'bg-emerald-800 text-white' : 'bg-emerald-100 text-emerald-800 font-bold'
-                      }`}>
-                        {totalNaZona}
-                      </span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setFiltroZonaApenas(true)}
+                    className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors flex items-center gap-0.5 ${
+                      filtroZonaApenas
+                        ? 'bg-emerald-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>Na Zona</span>
+                    <span className={`text-[8px] px-1 rounded-full ${
+                      filtroZonaApenas ? 'bg-emerald-800 text-white' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {totalNaZona}
+                    </span>
+                  </button>
                 </div>
+
+                <button
+                  onClick={() => setModalScanInfoAberto(true)}
+                  className="flex items-center gap-1 bg-[#0f172a] text-white px-1.5 py-0.5 rounded font-mono border border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs ml-auto"
+                  title="Próxima varredura geral diária às 19:00 BRT"
+                >
+                  <Clock className="w-2.5 h-2.5 text-emerald-400 animate-pulse shrink-0" />
+                  <span className="font-bold text-emerald-400">{countdownStr}</span>
+                </button>
               </div>
             </div>
 
-            {/* Lista/Grade de Cards de Oportunidades */}
-            {oportunidadesFiltradas.length === 0 ? (
-              <div className="bg-white border border-slate-300 rounded-xl p-8 text-center text-slate-500 space-y-2">
-                <Activity className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="font-semibold text-sm">Nenhum ativo encontrado com estes filtros.</p>
-                <button
-                  onClick={() => {
-                    setFiltroMercado('TODOS');
-                    setFiltroZonaApenas(false);
-                  }}
-                  className="text-xs text-blue-600 font-bold underline cursor-pointer"
-                >
-                  Limpar filtros da peneira
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-6">
-                {oportunidadesFiltradas.map((op) => {
+            {/* Lista Vertical com Rolagem Suave dos Cards de Oportunidades */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-0">
+              {oportunidadesFiltradas.length === 0 ? (
+                <div className="bg-white border border-dashed border-slate-300 rounded-lg p-4 text-center">
+                  <p className="text-xs text-slate-600 font-medium">Nenhum ativo encontrado.</p>
+                  <button
+                    onClick={() => {
+                      setBuscaTicker('');
+                      setFiltroMercado('TODOS');
+                      setFiltroZonaApenas(false);
+                    }}
+                    className="mt-2 text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Redefinir filtros
+                  </button>
+                </div>
+              ) : (
+                oportunidadesFiltradas.map((op) => {
                   const isSelected = ativo.ticker === op.ticker;
                   const { zona, fair } = calcularZonaPreco(op);
                   const naZona = op.preco <= zona;
@@ -1297,147 +1266,113 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                       key={op.id}
                       onClick={() => {
                         carregarAtivo(op);
-                        setMobileTab('info');
+                        if (!isDesktop) {
+                          setMobileTab('info');
+                        }
                       }}
-                      className={`rounded-xl p-3.5 transition-all cursor-pointer flex flex-col justify-between border-2 ${
+                      className={`p-2.5 rounded-xl border-2 transition-all cursor-pointer relative ${
                         isSelected
-                          ? 'bg-blue-50/70 border-blue-600 shadow-sm'
+                          ? 'bg-blue-50/90 border-blue-600 shadow-xs'
                           : naZona
-                          ? 'bg-white border-emerald-300 hover:border-emerald-500 hover:shadow-xs'
-                          : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
+                          ? 'bg-white border-emerald-300 hover:border-emerald-500 shadow-2xs hover:bg-emerald-50/30'
+                          : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs hover:bg-slate-50'
                       }`}
                     >
-                      <div>
-                        {/* Linha Superior: Ticker, Nome, Mercado & Status */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-base font-black font-mono tracking-tight text-slate-900">
-                                {op.ticker}
-                              </span>
-                              <span
-                                className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase border ${
-                                  op.mercado === 'B3'
-                                    ? 'bg-amber-50 text-amber-900 border-amber-300'
-                                    : 'bg-indigo-50 text-indigo-900 border-indigo-300'
-                                }`}
-                              >
-                                {op.mercado}
-                              </span>
-                              {isSelected && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-600 text-white shadow-2xs">
-                                  EM FOCO
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-slate-600 font-medium truncate mt-0.5">
-                              {op.nome}
-                            </div>
-                          </div>
-
-                          {/* Badge de Zona / Margem */}
-                          <div className="text-right shrink-0">
-                            {naZona ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs uppercase">
-                                <Check className="w-3 h-3" />
-                                NA ZONA
-                              </span>
-                            ) : (
-                              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 uppercase">
-                                RADAR
-                              </span>
-                            )}
-                            <div
-                              className={`text-xs font-bold font-mono mt-0.5 ${
-                                naZona ? 'text-emerald-700' : 'text-slate-500'
-                              }`}
-                            >
-                              {naZona ? `+${margemPct.toFixed(0)}% margem` : 'Acima do Teto'}
-                            </div>
-                          </div>
+                      {/* Topo do Card: Ticker, Mercado e Status */}
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-black font-mono text-slate-900 leading-none">
+                            {op.ticker}
+                          </span>
+                          <span className={`text-[8px] font-extrabold px-1.5 py-0.2 rounded uppercase border ${
+                            op.mercado === 'B3'
+                              ? 'bg-amber-50 text-amber-900 border-amber-300'
+                              : 'bg-indigo-50 text-indigo-900 border-indigo-300'
+                          }`}>
+                            {op.mercado}
+                          </span>
+                          {isSelected && (
+                            <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-blue-600 text-white shadow-2xs">
+                              EM FOCO
+                            </span>
+                          )}
                         </div>
 
-                        {/* Preços: Cotação Atual vs Zona Graham vs Preço Justo */}
-                        <div className="mt-3 grid grid-cols-3 gap-1.5 bg-slate-50 p-2 rounded-lg border border-slate-200 text-center font-mono">
-                          <div>
-                            <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">
-                              Preço Atual
-                            </span>
-                            <span className="text-xs font-bold text-slate-900">
-                              {moedaSimbolo} {op.preco.toFixed(2)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="block text-[9px] font-sans font-bold text-emerald-700 uppercase">
-                              Teto Compra
-                            </span>
-                            <span className="text-xs font-extrabold text-emerald-700">
-                              {moedaSimbolo} {zona.toFixed(2)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="block text-[9px] font-sans font-bold text-blue-700 uppercase">
-                              Preço Justo
-                            </span>
-                            <span className="text-xs font-bold text-blue-800">
-                              {moedaSimbolo} {fair.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Múltiplos Fundamentais */}
-                        <div className="mt-2.5 grid grid-cols-4 gap-1 text-center text-[10px] font-mono">
-                          <div className="bg-white border border-slate-200 rounded p-1">
-                            <span className="text-slate-400 block text-[9px]">P/L</span>
-                            <span className="font-bold text-slate-800">{op.pl.toFixed(1)}x</span>
-                          </div>
-                          <div className="bg-white border border-slate-200 rounded p-1">
-                            <span className="text-slate-400 block text-[9px]">P/VP</span>
-                            <span className="font-bold text-slate-800">{op.pvp.toFixed(2)}x</span>
-                          </div>
-                          <div className="bg-white border border-slate-200 rounded p-1">
-                            <span className="text-slate-400 block text-[9px]">DY</span>
-                            <span className="font-bold text-emerald-700">{op.dividendYield}%</span>
-                          </div>
-                          <div className="bg-white border border-slate-200 rounded p-1">
-                            <span className="text-slate-400 block text-[9px]">ROE</span>
-                            <span className="font-bold text-blue-700">{op.roe}%</span>
-                          </div>
-                        </div>
-
-                        {/* Destaque / Moat */}
-                        {op.destaqueSetup && (
-                          <p className="mt-2 text-[11px] text-slate-600 line-clamp-2 leading-tight">
-                            {op.destaqueSetup}
-                          </p>
+                        {naZona ? (
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded uppercase bg-emerald-600 text-white shadow-2xs flex items-center gap-0.5">
+                            <Check className="w-2.5 h-2.5" />
+                            NA ZONA
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                            RADAR
+                          </span>
                         )}
                       </div>
 
-                      {/* Botão de Ação para Abrir no Valuation */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          carregarAtivo(op);
-                          setMobileTab('info');
-                        }}
-                        className={`w-full mt-3 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs ${
-                          isSelected
-                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                            : 'bg-slate-900 text-white hover:bg-blue-600'
-                        }`}
-                      >
-                        <span>
-                          {isSelected ? 'Ver Valuation & Balanço' : `Analisar ${op.ticker} no Valuation`}
+                      {/* Nome da Empresa */}
+                      <p className="text-[11px] font-medium text-slate-600 truncate mb-1.5">
+                        {op.nome}
+                      </p>
+
+                      {/* Preços e Margem de Segurança */}
+                      <div className="grid grid-cols-2 gap-1 bg-slate-50 p-1.5 rounded-lg border border-slate-200 font-mono text-xs">
+                        <div>
+                          <span className="block text-[8px] font-sans font-bold text-slate-400 uppercase">Preço Atual</span>
+                          <span className="font-extrabold text-slate-900">
+                            {moedaSimbolo} {op.preco.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="block text-[8px] font-sans font-bold text-slate-400 uppercase">Zona Compra (-25%)</span>
+                          <span className="font-bold text-emerald-700">
+                            {moedaSimbolo} {zona.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Margem e Múltiplos */}
+                      <div className="flex items-center justify-between mt-1.5 text-[10px] text-slate-600 font-mono">
+                        <span className={`font-bold ${naZona ? 'text-emerald-700' : 'text-slate-500'}`}>
+                          {naZona ? `+${margemPct.toFixed(0)}% margem` : 'Acima do teto'}
                         </span>
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <span>DY {op.dividendYield}%</span>
+                          <span>•</span>
+                          <span>P/L {op.pl.toFixed(1)}x</span>
+                          <span>•</span>
+                          <span>P/VP {op.pvp.toFixed(1)}x</span>
+                        </div>
+                      </div>
+
+                      {/* Botão Mobile para Abrir Valuation */}
+                      <div className="lg:hidden mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-blue-600">
+                        <span>Analisar Valuation</span>
                         <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
+                      </div>
                     </div>
                   );
-                })}
-              </div>
-            )}
+                })
+              )}
+            </div>
           </section>
+        )}
+
+        {/* ========================================================= */}
+        {/* DIVISOR REDIMENSIONÁVEL 1 (ESQUERDA / MEIO) NO NOTEBOOK   */}
+        {/* ========================================================= */}
+        {!painelEsquerdoRecolhido && (
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setRedimensionando('left');
+            }}
+            onDoubleClick={() => setLeftWidth(320)}
+            className="hidden lg:flex w-[5px] hover:w-[7px] bg-slate-200 hover:bg-blue-500 cursor-col-resize shrink-0 transition-all z-10 items-center justify-center group relative select-none"
+            title="Arraste para redimensionar o painel de oportunidades no notebook. Clique duplo para redefinir para 320px."
+          >
+            <div className="w-1 h-8 rounded-full bg-slate-400 group-hover:bg-white transition-colors" />
+          </div>
         )}
 
         {/* ========================================================= */}
@@ -1602,15 +1537,34 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         )}
 
         {/* ========================================================= */}
-        {/* ABA DA ESQUERDA: ATIVO DESTRINCHADO & VALUATION           */}
+        {/* PAINEL 2 (CENTRO): TERMINAL DE VALUATION & BALANÇO        */}
+        {/* Ocupa flex-1 adaptando-se aos painéis redimensionáveis    */}
         {/* ========================================================= */}
         <main
-          className={`w-full ${
-            mobileTab === 'ambas' ? 'md:w-1/2' : 'lg:w-1/2'
-          } flex-1 min-w-0 bg-[#fbfcfd] flex flex-col p-3 sm:p-4 space-y-3.5 overflow-y-auto ${
+          className={`flex-1 min-w-[320px] bg-[#fbfcfd] flex flex-col p-3 sm:p-4 space-y-3.5 overflow-y-auto h-full z-0 ${
             mobileTab === 'copilot' || mobileTab === 'oportunidades' || mobileTab === 'metas' ? 'hidden lg:flex' : 'flex'
           }`}
         >
+          {/* Barra de Navegação Rápida no Mobile / Tablet */}
+          <div className="lg:hidden flex items-center justify-between gap-2 p-2 bg-blue-50/70 border border-blue-200 rounded-lg text-xs shrink-0">
+            <button
+              type="button"
+              onClick={() => setMobileTab('oportunidades')}
+              className="flex items-center gap-1 font-bold text-blue-700 hover:text-blue-900 cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Oportunidades</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab('copilot')}
+              className="flex items-center gap-1 font-bold bg-blue-600 text-white px-2.5 py-1 rounded-md shadow-2xs cursor-pointer hover:bg-blue-700 transition-colors"
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span>AntiTrader AI</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
           {/* Header da Ação Selecionada */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-300 gap-2.5">
             <div>
@@ -1964,41 +1918,82 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         </main>
 
         {/* ========================================================= */}
-        {/* PAINEL DA DIREITA: COPILOT IA (ABERTO, PROFUNDO E AO LADO)*/}
-        {/* Ocupa ~38% da largura no desktop                           */}
+        {/* DIVISOR REDIMENSIONÁVEL 2 (MEIO / DIREITA) NO NOTEBOOK    */}
         {/* ========================================================= */}
-        {/* ========================================================= */}
-        {/* ABA DA DIREITA (50%): IA COPILOT DE MERCADO & VALUATION   */}
-        {/* ========================================================= */}
-        <aside
-          className={`w-full ${
-            mobileTab === 'ambas' ? 'md:w-1/2' : 'lg:w-1/2'
-          } flex-1 min-w-0 bg-[#fbfbfc] flex flex-col border-t lg:border-t-0 lg:border-l border-slate-300 overflow-hidden ${
-            mobileTab === 'info' || mobileTab === 'oportunidades' || mobileTab === 'metas' ? 'hidden lg:flex' : 'flex'
-          }`}
-        >
-          {/* Header do Chat */}
-          <div className="p-2.5 border-b border-slate-300 bg-slate-50 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Bot className="w-4 h-4 text-blue-600 shrink-0" />
-              <div className="min-w-0">
-                <span className="font-bold text-xs text-slate-900 truncate">
-                  AntiTrader AI • {ativo.ticker}
-                </span>
-              </div>
-            </div>
+        {!painelDireitoRecolhido && (
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setRedimensionando('right');
+            }}
+            onDoubleClick={() => setRightWidth(380)}
+            className="hidden lg:flex w-[5px] hover:w-[7px] bg-slate-200 hover:bg-blue-500 cursor-col-resize shrink-0 transition-all z-10 items-center justify-center group relative select-none"
+            title="Arraste para redimensionar o painel AntiTrader AI no notebook. Clique duplo para redefinir para 380px."
+          >
+            <div className="w-1 h-8 rounded-full bg-slate-400 group-hover:bg-white transition-colors" />
+          </div>
+        )}
 
-            <div className="flex items-center gap-1.5 text-slate-600 shrink-0">
-              {/* Botão de Atalho Rápido para Voltar ao Valuation no Mobile / Tablet */}
-              <button
-                type="button"
-                onClick={() => setMobileTab('info')}
-                className="lg:hidden flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 px-2 py-0.5 rounded cursor-pointer transition-colors shadow-2xs"
-                title="Voltar ao Terminal de Valuation"
-              >
-                <SlidersHorizontal className="w-3 h-3 text-blue-600" />
-                <span>Valuation</span>
-              </button>
+        {/* ========================================================= */}
+        {/* PAINEL 3 (DIREITA): COPILOT ANTITRADER AI                 */}
+        {/* Customizável no desktop/notebook e aba no mobile/tablet    */}
+        {/* ========================================================= */}
+        {painelDireitoRecolhido && isDesktop ? (
+          <aside className="hidden lg:flex w-9 bg-slate-100 border-l border-slate-300 flex-col items-center py-3 justify-between shrink-0 select-none">
+            <button
+              onClick={() => setPainelDireitoRecolhido(false)}
+              className="p-1.5 hover:bg-white rounded border border-transparent hover:border-slate-300 text-slate-600 hover:text-blue-600 transition-colors cursor-pointer"
+              title="Expandir AntiTrader AI"
+            >
+              <PanelRight className="w-4 h-4" />
+            </button>
+            <span className="[writing-mode:vertical-rl] text-[11px] font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
+              <Bot className="w-3.5 h-3.5 text-blue-600" />
+              <span>AntiTrader AI</span>
+            </span>
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+          </aside>
+        ) : (
+          <aside
+            style={{ width: isDesktop && !painelDireitoRecolhido ? `${rightWidth}px` : undefined }}
+            className={`w-full ${
+              isDesktop ? 'shrink-0' : 'flex-1'
+            } min-w-0 bg-[#fbfbfc] flex flex-col border-t lg:border-t-0 lg:border-l border-slate-300 overflow-hidden h-full ${
+              mobileTab === 'info' || mobileTab === 'oportunidades' || mobileTab === 'metas' ? 'hidden lg:flex' : 'flex'
+            }`}
+          >
+            {/* Header do Chat */}
+            <div className="p-2.5 border-b border-slate-300 bg-slate-50 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Bot className="w-4 h-4 text-blue-600 shrink-0" />
+                <div className="min-w-0">
+                  <span className="font-bold text-xs text-slate-900 truncate">
+                    AntiTrader AI • {ativo.ticker}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-slate-600 shrink-0">
+                {/* Botão de Atalho Rápido para Voltar ao Valuation no Mobile / Tablet */}
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('info')}
+                  className="lg:hidden flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 px-2 py-0.5 rounded cursor-pointer transition-colors shadow-2xs"
+                  title="Voltar ao Terminal de Valuation"
+                >
+                  <SlidersHorizontal className="w-3 h-3 text-blue-600" />
+                  <span>Valuation</span>
+                </button>
+
+                {/* Botão de Recolher Painel Direito no Desktop */}
+                <button
+                  type="button"
+                  onClick={() => setPainelDireitoRecolhido(true)}
+                  className="hidden lg:flex p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded border border-transparent hover:border-slate-300 transition-colors cursor-pointer"
+                  title="Recolher painel AntiTrader AI para focar no valuation no notebook"
+                >
+                  <PanelRight className="w-3.5 h-3.5" />
+                </button>
 
               <span className="text-[10px] font-mono bg-emerald-50 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded font-medium flex items-center gap-1" title="Capacidade de realizar pesquisas em tempo real">
                 <Globe className="w-3 h-3 text-emerald-600 animate-pulse" />
@@ -2163,6 +2158,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             </form>
           </div>
         </aside>
+        )}
 
       </div>
 
