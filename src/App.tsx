@@ -1580,7 +1580,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             </button>
           </div>
           {/* Header da Ação Selecionada */}
-          <div className="flex flex-wrap items-center justify-between pb-3 border-b border-slate-300 gap-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-300 gap-3">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-300">
@@ -1603,9 +1603,10 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap shrink-0">
-              <div className="text-left sm:text-right font-mono shrink-0">
-                <div className="flex items-center sm:justify-end gap-1.5">
+            <div className="flex flex-col sm:items-end gap-1.5 shrink-0">
+              {/* Linha 1: Preço Atual e Status da Zona */}
+              <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
+                <div className="flex items-baseline gap-1.5 font-mono">
                   <span className="text-xl sm:text-2xl font-bold text-slate-900 block whitespace-nowrap">
                     {fmtMoeda(preco)}
                   </span>
@@ -1622,43 +1623,45 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                     </span>
                   )}
                 </div>
-                <div className="flex items-center sm:justify-end gap-1.5 text-[11px] text-slate-600 mt-0.5 whitespace-nowrap shrink-0">
-                  <span className="whitespace-nowrap">P/L: {calc.plAtual.toFixed(1)}x • P/VP: {calc.pvpAtual.toFixed(2)}x</span>
-                  <button
-                    onClick={atualizarCotacaoAtual}
-                    disabled={atualizandoCotacao}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
-                    title="Consultar cotação ao vivo em tempo real deste ativo no pregão e recalcular desconto"
-                  >
-                    <RefreshCw className={`w-2.5 h-2.5 ${atualizandoCotacao ? 'animate-spin' : ''}`} />
-                    <span className="whitespace-nowrap">{atualizandoCotacao ? 'Cotação...' : 'Cotação Atual'}</span>
-                  </button>
+
+                <div
+                  className={`px-2.5 py-1 rounded-md text-[10.5px] sm:text-[11px] font-extrabold tracking-wider uppercase border-2 flex items-center gap-1.5 shrink-0 whitespace-nowrap shadow-2xs ${
+                    calc.status === 'COMPRA'
+                      ? 'bg-emerald-50 text-emerald-900 border-emerald-400'
+                      : calc.status === 'JUSTO'
+                      ? 'bg-amber-50 text-amber-900 border-amber-400'
+                      : 'bg-red-50 text-red-900 border-red-400'
+                  }`}
+                >
+                  <span className="text-[8px]">●</span>
+                  <span>{calc.status === 'COMPRA' ? 'ZONA DE COMPRA' : calc.status === 'JUSTO' ? 'PREÇO JUSTO' : 'CARO (AGUARDAR)'}</span>
                 </div>
+
+                {/* Botão de Atalho Rápido para a IA no Mobile / Tablet */}
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('copilot')}
+                  className="lg:hidden flex items-center gap-1.5 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-md border border-blue-300 transition-colors cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
+                  title="Abrir chat do AntiTrader AI para este ativo"
+                >
+                  <Bot className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Perguntar à IA</span>
+                </button>
               </div>
 
-              <div
-                className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold tracking-wider uppercase border-2 flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-                  calc.status === 'COMPRA'
-                    ? 'bg-emerald-50 text-emerald-900 border-emerald-400'
-                    : calc.status === 'JUSTO'
-                    ? 'bg-amber-50 text-amber-900 border-amber-400'
-                    : 'bg-red-50 text-red-900 border-red-400'
-                }`}
-              >
-                <span className="text-[8px]">●</span>
-                <span>{calc.status === 'COMPRA' ? 'ZONA DE COMPRA' : calc.status === 'JUSTO' ? 'PREÇO JUSTO' : 'CARO (AGUARDAR)'}</span>
+              {/* Linha 2: Múltiplos e Botão Atualizar Cotação em Linha Única Horizontal */}
+              <div className="flex items-center sm:justify-end gap-1.5 text-[11px] text-slate-600 whitespace-nowrap">
+                <span className="whitespace-nowrap">P/L: {calc.plAtual.toFixed(1)}x • P/VP: {calc.pvpAtual.toFixed(2)}x</span>
+                <button
+                  onClick={atualizarCotacaoAtual}
+                  disabled={atualizandoCotacao}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 cursor-pointer transition-colors shrink-0 whitespace-nowrap shadow-2xs"
+                  title="Consultar cotação ao vivo em tempo real deste ativo no pregão e recalcular desconto"
+                >
+                  <RefreshCw className={`w-2.5 h-2.5 ${atualizandoCotacao ? 'animate-spin' : ''}`} />
+                  <span className="whitespace-nowrap">{atualizandoCotacao ? 'Cotação...' : 'Cotação Atual'}</span>
+                </button>
               </div>
-
-              {/* Botão de Atalho Rápido para a IA no Mobile / Tablet */}
-              <button
-                type="button"
-                onClick={() => setMobileTab('copilot')}
-                className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-md border border-blue-300 transition-colors cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
-                title="Abrir chat do AntiTrader AI para este ativo"
-              >
-                <Bot className="w-3.5 h-3.5 text-blue-600" />
-                <span>Perguntar à IA</span>
-              </button>
             </div>
           </div>
 
@@ -1757,7 +1760,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           </div>
 
           {/* FICHA TÉCNICA DO BALANÇO E TESE BUY & HOLD (QUADRINHOS BEM DEMARCADOS) */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 2xl:grid-cols-2 gap-3">
             <div className="p-3 bg-white border-2 border-slate-300 rounded-lg space-y-2.5 shadow-2xs">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 uppercase tracking-wider">
                 <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
