@@ -1490,14 +1490,14 @@ Acompanhamento contínuo de resultados regulatórios (CVM/SEC) e notícias de me
    - Posição de caixa robusta garantindo proteção contra oscilações de juros.
 
 3. **Pesquisa Contínua:**
-   - Você pode conectar sua chave gratuita pessoal do Google AI Studio no botão **"Chaves & Backup"** no topo da tela para desbloquear consultas ilimitadas em tempo real com o Gemini 3.8 Flash!`
+   - Suporte analítico contínuo alimentado pela inteligência avançada do AntiTrader AI!
     };
   }
 
   // 6. Resposta Geral Especialista (Ampla e Profunda para qualquer outro questionamento)
   return {
-    usedSource: 'Copilot Antigravity Multitemas',
-    reply: `### Análise do Copilot Antigravity para ${ticker} (${nome})
+    usedSource: 'AntiTrader AI Multitemas',
+    reply: `### Análise do AntiTrader AI para ${ticker} (${nome})
 
 Respondendo à sua pergunta sobre: *"${message}"*:
 
@@ -1581,7 +1581,7 @@ DADOS DO ATIVO SELECIONADO NA PLATAFORMA ANTIGRAVITY:
 `
       : 'Nenhum ativo específico selecionado no momento.';
 
-    const systemInstruction = `Você é o Gemini, atuando como o Copiloto Antigravity de Inteligência Financeira, Mercado de Ações e Valuation.
+    const systemInstruction = `Você é o Gemini, atuando como o AntiTrader AI de Inteligência Financeira, Mercado de Ações e Valuation.
 Você tem a capacidade analítica completa, aberta, flexível e conversacional do próprio Gemini. Responda a qualquer pergunta, dúvida teórica, conceitual, técnica, macroeconômica, setup ou tese de investimento com total profundidade e sem respostas pré-fabricadas.
 
 DIRETRIZES FUNDAMENTAIS:

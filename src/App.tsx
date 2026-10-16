@@ -2,8 +2,6 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { OPORTUNIDADES_SETUP } from './data/oportunidades';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import {
-  Search,
-  Sparkles,
   Send,
   Copy,
   Check,
@@ -15,9 +13,7 @@ import {
   FileSpreadsheet,
   Plus,
   Bot,
-  Key,
   X,
-  Lock,
   ExternalLink,
   ChevronDown,
   Layers,
@@ -209,17 +205,10 @@ export default function GrahamBuyZoneWorkspace() {
   const [modalMetasAberto, setModalMetasAberto] = useState(false);
   const [metaNotification, setMetaNotification] = useState<string | null>(null);
 
-  // Chave personalizada do usuário (salva no localStorage para backup)
-  const [userApiKey, setUserApiKey] = useState<string>(() => {
+  // Chave personalizada do usuário (mantida em background se configurada no storage)
+  const [userApiKey] = useState<string>(() => {
     return localStorage.getItem('antitrader_gemini_key') || localStorage.getItem('antigravity_gemini_key') || '';
   });
-  const [inputApiKey, setInputApiKey] = useState('');
-  const [chaveSalvaFeedback, setChaveSalvaFeedback] = useState(false);
-  const [apiStatusInfo, setApiStatusInfo] = useState<any>(null);
-  const [testandoApi, setTestandoApi] = useState(false);
-
-  // Modal com explicação de Chaves de API e Fontes
-  const [modalApiAberto, setModalApiAberto] = useState(false);
 
   // Modal de Auditoria Operacional & Diagnósticos em Tempo Real
   const [auditDiagnostics, setAuditDiagnostics] = useState<any>(null);
@@ -295,9 +284,6 @@ export default function GrahamBuyZoneWorkspace() {
   const [modalScanInfoAberto, setModalScanInfoAberto] = useState(false);
   const [feedbackScan, setFeedbackScan] = useState<string | null>(null);
 
-  // Pesquisa com IA
-  const [buscaTicker, setBuscaTicker] = useState('');
-  const [buscandoIA, setBuscandoIA] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
   // Chat com o Agente (Especialista em Valuation & Inteligência Fundamentalista Aberta)
@@ -311,7 +297,7 @@ export default function GrahamBuyZoneWorkspace() {
         { label: 'Cotação em Tempo Real B3 / NYSE Integrada', type: 'audit' },
         { label: 'Múltiplos e Margem de Segurança Validados (Setup Graham)', type: 'thought' },
       ],
-      text: `Olá! Sou o **Copilot AntiTrader de Inteligência de Mercado & Valuation**.
+      text: `Olá! Sou o **AntiTrader AI de Inteligência de Mercado & Valuation**.
 
 A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estritamente na **Zona de Compra**:
 • **Filtro Ativo:** Apenas ativos cotados abaixo ou na Zona de Compra (com margem de segurança configurada).
@@ -476,12 +462,6 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
     fetchOportunidades();
     fetchScanStatus();
 
-    // Busca status da API
-    fetch('/api/api-status')
-      .then((res) => res.json())
-      .then((info) => setApiStatusInfo(info))
-      .catch(() => {});
-
     // Polling automático em segundo plano a cada 60 segundos
     const pollInterval = setInterval(() => {
       fetchOportunidades();
@@ -626,60 +606,6 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
     return s;
   };
 
-  // Salvar chave de backup
-  const salvarChaveCustomizada = () => {
-    if (inputApiKey.trim()) {
-      localStorage.setItem('antitrader_gemini_key', inputApiKey.trim());
-      localStorage.setItem('antigravity_gemini_key', inputApiKey.trim());
-      setUserApiKey(inputApiKey.trim());
-    } else {
-      localStorage.removeItem('antitrader_gemini_key');
-      localStorage.removeItem('antigravity_gemini_key');
-      setUserApiKey('');
-    }
-    setChaveSalvaFeedback(true);
-    setTimeout(() => setChaveSalvaFeedback(false), 2500);
-  };
-
-  // Testar conexão de API
-  const testarConexaoApi = async () => {
-    setTestandoApi(true);
-    try {
-      const res = await fetch('/api/api-status');
-      const data = await res.json();
-      setApiStatusInfo(data);
-    } catch {
-      // ignore
-    } finally {
-      setTestandoApi(false);
-    }
-  };
-
-  // Busca Inteligente com IA
-  const handleBuscarTicker = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!buscaTicker.trim() || buscandoIA) return;
-
-    setBuscandoIA(true);
-    try {
-      const res = await fetch('/api/gemini/search-financials', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userApiKey ? { 'x-gemini-key': userApiKey } : {}),
-        },
-        body: JSON.stringify({ query: buscaTicker.trim() }),
-      });
-      if (!res.ok) throw new Error('Não foi possível carregar os dados.');
-      const data: Oportunidade = await res.json();
-      carregarAtivo(data);
-      setBuscaTicker('');
-    } catch (err: any) {
-      console.error(err);
-    } finally {
-      setBuscandoIA(false);
-    }
-  };
 
   // Enviar Mensagem para o Chat (Profundo e Aberto)
   const handleEnviarMensagem = async (textoPersonalizado?: string) => {
@@ -876,42 +802,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             </div>
           </div>
 
-          {/* Botão de Informações de Chave de API & Backup */}
-          <button
-            onClick={() => {
-              setInputApiKey(userApiKey);
-              setModalApiAberto(true);
-            }}
-            className="flex items-center gap-1 text-[11px] font-mono text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-            title="Ver informações sobre chave gratuita, backup e failover"
-          >
-            <Key className="w-3 h-3 text-blue-600" />
-            <span className="hidden lg:inline">Chaves &amp; Backup</span>
-            {userApiKey && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Chave pessoal ativa"></span>}
-          </button>
         </div>
-
-        {/* Barra Central de Busca com IA */}
-        <form onSubmit={handleBuscarTicker} className="flex-1 max-w-xs sm:max-w-sm mx-1 sm:mx-2 min-w-0">
-          <div className="relative">
-            <input
-              type="text"
-              value={buscaTicker}
-              onChange={(e) => setBuscaTicker(e.target.value)}
-              placeholder="Buscar ação com IA (ex: PETR4, BBAS3, NVDA)..."
-              className="w-full bg-[#f8fafc] border border-slate-300 focus:border-blue-600 focus:bg-white text-xs text-[#0f172a] rounded-md pl-7 pr-12 py-1 outline-none font-medium transition-all"
-            />
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2" />
-            <button
-              type="submit"
-              disabled={buscandoIA || !buscaTicker.trim()}
-              className="absolute right-1 top-0.5 px-2 py-0.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              {buscandoIA ? <RefreshCw className="w-2.5 h-2.5 animate-spin" /> : <Sparkles className="w-2.5 h-2.5" />}
-              <span>IA</span>
-            </button>
-          </div>
-        </form>
 
         {/* Controles de Ação do Header */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -1234,7 +1125,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             }`}
           >
             <Bot className="w-3.5 h-3.5 shrink-0" />
-            <span>Copilot IA</span>
+            <span>AntiTrader AI</span>
           </button>
           <button
             onClick={() => setMobileTab('ambas')}
@@ -2029,7 +1920,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               <Bot className="w-4 h-4 text-blue-600 shrink-0" />
               <div className="min-w-0">
                 <span className="font-bold text-xs text-slate-900 truncate">
-                  Copilot IA • {ativo.ticker}
+                  AntiTrader AI • {ativo.ticker}
                 </span>
               </div>
             </div>
@@ -2064,7 +1955,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                 >
                   <div className="flex items-center justify-between text-[10px] mb-1.5 font-mono text-slate-400">
                     <span className="font-bold text-slate-700">
-                      {msg.sender === 'user' ? 'Você' : 'Gemini Copilot'}
+                      {msg.sender === 'user' ? 'Você' : 'AntiTrader AI'}
                     </span>
                     <span>{msg.timestamp}</span>
                   </div>
@@ -2201,150 +2092,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
       </div>
 
       {/* ========================================================= */}
-      {/* MODAL: CHAVES DE API GRATUITA + BACKUP (FAILOVER AUTOMÁTICO)*/}
-      {/* ========================================================= */}
-      {modalApiAberto && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full border-2 border-slate-300 overflow-hidden">
-            <div className="p-3.5 border-b border-slate-300 bg-slate-50 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-blue-600" />
-                <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">
-                  Chave Gratuita + Chave de Backup (Failover)
-                </h3>
-              </div>
-              <button
-                onClick={() => setModalApiAberto(false)}
-                className="p-1 text-slate-500 hover:text-black cursor-pointer rounded"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <div className="p-4 space-y-3.5 text-xs text-slate-700 leading-relaxed max-h-[80vh] overflow-y-auto">
-              
-              {/* Explicação da Arquitetura */}
-              <div className="p-3 bg-blue-50 border border-blue-300 rounded-lg">
-                <div className="flex items-center gap-1.5 font-bold text-blue-900 mb-1">
-                  <Lock className="w-3.5 h-3.5 text-blue-700" />
-                  <span>Como funciona a Chave Gratuita e o Backup</span>
-                </div>
-                <p className="text-[11px] text-blue-800">
-                  O sistema possui uma <strong>chave gratuita do Google AI Studio</strong> ativa no servidor. Caso a cota gratuita atinja o limite por minuto, o servidor faz <strong>failover automático para chaves reservas e modelos alternativos (Gemini 3.8 Flash, Gemini 3.1 Flash Lite e Gemini 2.5 Flash)</strong> sem travar o seu uso!
-                </p>
-              </div>
-
-              {/* Status das Chaves Ativas */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-xs">Status do Servidor:</h4>
-                  <button
-                    onClick={testarConexaoApi}
-                    disabled={testandoApi}
-                    className="text-[10px] text-blue-700 hover:underline flex items-center gap-1 cursor-pointer font-bold"
-                  >
-                    <RefreshCw className={`w-2.5 h-2.5 ${testandoApi ? 'animate-spin' : ''}`} />
-                    <span>Testar Conexão</span>
-                  </button>
-                </div>
-
-                <div className="p-2.5 rounded border border-slate-300 bg-slate-50 space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0"></span>
-                    <div>
-                      <strong className="block text-slate-900">1. Chave Gratuita Primária (Google AI Studio):</strong>
-                      <span className="text-slate-600 text-[11px]">
-                        {apiStatusInfo?.primaryKeyStatus || 'Ativa no backend seguro (sem expor chave ao navegador).'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2 pt-2 border-t border-slate-200">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 mt-1 shrink-0"></span>
-                    <div>
-                      <strong className="block text-slate-900">2. Chave de Backup / Failover:</strong>
-                      <span className="text-slate-600 text-[11px]">
-                        Ativa para alternância automática em caso de saturação ou código 429 de cota.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Campo para o Usuário Adicionar sua Própria Chave Gratuita de Backup */}
-              <div className="p-3 rounded-lg border-2 border-slate-300 bg-slate-50 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
-                    <Key className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Sua Chave Gratuita Pessoal (Backup Opcional)</span>
-                  </div>
-                  <a
-                    href="https://aistudio.google.com/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[10px] text-blue-600 hover:underline flex items-center gap-1 font-bold"
-                  >
-                    <span>Criar Chave Gratuita</span>
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
-                </div>
-
-                <p className="text-[11px] text-slate-600">
-                  Deseja usar sua própria chave pessoal do Google AI Studio como prioridade ou backup garantido? Cole abaixo (fica salva apenas no seu navegador):
-                </p>
-
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    value={inputApiKey}
-                    onChange={(e) => setInputApiKey(e.target.value)}
-                    placeholder="AIzaSy..."
-                    className="flex-1 bg-white border border-slate-400 focus:border-blue-600 rounded px-2.5 py-1 text-xs font-mono outline-none"
-                  />
-                  <button
-                    onClick={salvarChaveCustomizada}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded cursor-pointer transition-colors"
-                  >
-                    Salvar
-                  </button>
-                </div>
-
-                {chaveSalvaFeedback && (
-                  <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-1 mt-1">
-                    <Check className="w-3 h-3" /> Chave pessoal salva e prioritária para suas chamadas!
-                  </span>
-                )}
-                {userApiKey && !chaveSalvaFeedback && (
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1">
-                    <span>Chave pessoal ativa: <code className="font-mono bg-slate-200 px-1 rounded">{userApiKey.slice(0, 6)}...{userApiKey.slice(-4)}</code></span>
-                    <button
-                      onClick={() => {
-                        setInputApiKey('');
-                        localStorage.removeItem('antitrader_gemini_key');
-                        localStorage.removeItem('antigravity_gemini_key');
-                        setUserApiKey('');
-                      }}
-                      className="text-red-600 hover:underline cursor-pointer"
-                    >
-                      Remover
-                    </button>
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            <div className="p-3 bg-slate-50 border-t border-slate-300 text-right">
-              <button
-                onClick={() => setModalApiAberto(false)}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors"
-              >
-                Concluído
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ========================================================= */}
       {/* MODAL: AUDITORIA OPERACIONAL & DIAGNÓSTICOS EM TEMPO REAL  */}
