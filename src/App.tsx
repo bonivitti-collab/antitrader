@@ -1706,7 +1706,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               <span className={`text-xl font-bold font-mono block mt-0.5 ${calc.vsFair >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                 {fmtPercent(calc.vsFair)}
               </span>
-              <span className="text-[11px] text-slate-600 font-mono mt-0.5 block">
+              <span className="text-[11px] text-slate-600 font-mono mt-0.5 block whitespace-nowrap">
                 P/L &times; P/VP: <strong className={calc.grahamMultiplier <= 22.5 ? 'text-emerald-700' : 'text-amber-700'}>{calc.grahamMultiplier.toFixed(2)}</strong> (Máx: 22.5)
               </span>
             </div>
@@ -1715,9 +1715,9 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           {/* RÉGUA VISUAL DA ZONA DE COMPRA (GAUGE REFINADA) */}
           <div className="p-3.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xs overflow-hidden">
             <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-2 flex-wrap gap-1">
-              <span className="text-emerald-700">Barato / Compra (&lt; {fmtMoeda(calc.zona)})</span>
-              <span className="text-amber-700">Preço Justo ({fmtMoeda(calc.fair)})</span>
-              <span className="text-red-700">Caro / Aguardar</span>
+              <span className="text-emerald-700 whitespace-nowrap">Barato / Compra (&lt; {fmtMoeda(calc.zona)})</span>
+              <span className="text-amber-700 whitespace-nowrap">Preço Justo ({fmtMoeda(calc.fair)})</span>
+              <span className="text-red-700 whitespace-nowrap">Caro / Aguardar</span>
             </div>
 
             {/* Barra fina, elegante e arredondada */}
@@ -1749,15 +1749,15 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             </div>
 
             <div className="flex justify-between text-[10px] sm:text-[11px] font-mono text-slate-600 mt-1 flex-wrap gap-1">
-              <span>0.00</span>
-              <span>Teto Zona: <strong className="text-emerald-700">{fmtMoeda(calc.zona)}</strong></span>
-              <span>Fair Value: <strong className="text-amber-750">{fmtMoeda(calc.fair)}</strong></span>
-              <span>Escala: {fmtMoeda(calc.scaleMax)}</span>
+              <span className="whitespace-nowrap">0.00</span>
+              <span className="whitespace-nowrap">Teto Zona: <strong className="text-emerald-700">{fmtMoeda(calc.zona)}</strong></span>
+              <span className="whitespace-nowrap">Fair Value: <strong className="text-amber-750">{fmtMoeda(calc.fair)}</strong></span>
+              <span className="whitespace-nowrap">Escala: {fmtMoeda(calc.scaleMax)}</span>
             </div>
           </div>
 
           {/* FICHA TÉCNICA DO BALANÇO E TESE BUY & HOLD (QUADRINHOS BEM DEMARCADOS) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
             <div className="p-3 bg-white border-2 border-slate-300 rounded-lg space-y-2.5 shadow-2xs">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 uppercase tracking-wider">
                 <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
@@ -1794,9 +1794,29 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               <div className="p-2.5 bg-slate-50 rounded-md border border-slate-300 text-xs text-slate-800 leading-relaxed min-h-[90px]">
                 {ativo.condicoesBuyHold}
               </div>
-              <div className="pt-2 border-t border-slate-300 text-[11px] font-mono text-slate-600 flex justify-between items-center">
-                <span>Setup P/L &times; P/VP: <strong className="text-emerald-700">{calc.grahamMultiplier.toFixed(2)} &le; 22.5</strong></span>
-                <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">Aprovado ✓</span>
+              <div className="pt-2.5 border-t border-slate-200 text-xs font-mono text-slate-700 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                  <span className="text-slate-500 font-sans text-[11px]">Setup Graham:</span>
+                  <span className="font-bold text-slate-900 whitespace-nowrap">
+                    P/L &times; P/VP = {calc.grahamMultiplier.toFixed(2)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-sans whitespace-nowrap">
+                    (máx: 22.5)
+                  </span>
+                </div>
+                <div className="shrink-0">
+                  {calc.grahamMultiplier <= 22.5 ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-md whitespace-nowrap shadow-2xs">
+                      <span>Aprovado</span>
+                      <span className="font-extrabold text-emerald-600">✓</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-md whitespace-nowrap shadow-2xs">
+                      <span>Acima de 22.5</span>
+                      <span className="font-extrabold text-amber-600">✕</span>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1861,10 +1881,10 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+            <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-2 text-xs font-mono">
               <div className="p-2 bg-slate-50 rounded-md border border-slate-300">
-                <label className="text-[10px] text-slate-600 block mb-1 font-sans">
-                  Cotação Atual ({ativo.mercado === 'B3' ? 'BRL (R$)' : moeda})
+                <label className="text-[10px] text-slate-600 block mb-1 font-sans truncate" title="Cotação Atual">
+                  Cotação ({ativo.mercado === 'B3' ? 'R$' : moeda})
                 </label>
                 <input
                   type="number"
@@ -1876,8 +1896,8 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               </div>
 
               <div className="p-2 bg-slate-50 rounded-md border border-slate-300">
-                <label className="text-[10px] text-slate-600 block mb-1 font-sans">
-                  LPA (Lucro por Ação - {isAtivoB3(ativo.mercado, ativo.moeda, ativo.ticker) ? 'R$' : '$'})
+                <label className="text-[10px] text-slate-600 block mb-1 font-sans truncate" title="LPA (Lucro por Ação)">
+                  LPA (Lucro/Ação - {isAtivoB3(ativo.mercado, ativo.moeda, ativo.ticker) ? 'R$' : '$'})
                 </label>
                 <input
                   type="number"
@@ -1889,8 +1909,8 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               </div>
 
               <div className="p-2 bg-slate-50 rounded-md border border-slate-300">
-                <label className="text-[10px] text-slate-600 block mb-1 font-sans">
-                  VPA (Patrimônio Líq/Ação - {isAtivoB3(ativo.mercado, ativo.moeda, ativo.ticker) ? 'R$' : '$'})
+                <label className="text-[10px] text-slate-600 block mb-1 font-sans truncate" title="VPA (Patrimônio Líquido por Ação)">
+                  VPA (Patrimônio/Ação - {isAtivoB3(ativo.mercado, ativo.moeda, ativo.ticker) ? 'R$' : '$'})
                 </label>
                 <input
                   type="number"
@@ -1902,7 +1922,9 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               </div>
 
               <div className="p-2 bg-slate-50 rounded-md border border-slate-300">
-                <label className="text-[10px] text-slate-600 block mb-1 font-sans">Crescimento g (%)</label>
+                <label className="text-[10px] text-slate-600 block mb-1 font-sans truncate" title="Crescimento g (%)">
+                  Crescimento g (%)
+                </label>
                 <input
                   type="number"
                   step="any"
