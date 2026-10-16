@@ -805,40 +805,42 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
 
         </div>
 
-        {/* Controles de Ação do Header */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Botão de Instalação PWA (Disponível quando instalável ou no iOS Safari) */}
+        {/* Controles de Ação do Header - Responsivos e sem transbordo */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {/* Botão de Instalação PWA */}
           <PWAInstallButton />
 
           {/* Botão de Refresh Global de Cotações */}
           <button
             onClick={fetchOportunidades}
             disabled={carregandoOportunidades}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-blue-700 hover:border-blue-400 transition-colors cursor-pointer shadow-2xs"
+            className="flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-blue-700 hover:border-blue-400 transition-colors cursor-pointer shadow-2xs active:scale-95"
             title="Atualizar cotações ao vivo do pregão para as ações monitoradas"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${carregandoOportunidades ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{carregandoOportunidades ? 'Atualizando...' : 'Atualizar Cotações'}</span>
+            <span className="hidden xl:inline">{carregandoOportunidades ? 'Atualizando...' : 'Cotações'}</span>
           </button>
 
+          {/* Botão Copiar */}
           <button
             onClick={copiarResumo}
-            className="flex items-center gap-1 px-2 py-1 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors cursor-pointer"
-            title="Copiar relatório formatado"
+            className="flex items-center justify-center gap-1 px-2 py-1 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors cursor-pointer active:scale-95"
+            title="Copiar relatório formatado de valuation"
           >
-            {copiado ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-500" />}
-            <span className="hidden sm:inline">{copiado ? 'Copiado!' : 'Copiar'}</span>
+            {copiado ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+            <span className="hidden xl:inline">{copiado ? 'Copiado!' : 'Copiar'}</span>
           </button>
 
           {/* Botão de Acompanhamento de Metas de Preço Graham */}
           <button
             onClick={() => setModalMetasAberto(true)}
-            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md border border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-xs font-bold text-blue-900 transition-colors cursor-pointer shadow-2xs"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md border border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-xs font-bold text-blue-900 transition-colors cursor-pointer shadow-2xs active:scale-95"
             title="Acompanhar variações de preço até o objetivo (Preço Justo Graham) e histórico de metas finalizadas"
           >
-            <Target className="w-3.5 h-3.5 text-blue-600" />
-            <span className="hidden sm:inline">Metas:</span>
-            <span className="font-mono">{trackerStats.totalAtivas} Ativas</span>
+            <Target className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            <span className="hidden md:inline">Metas:</span>
+            <span className="font-mono text-[11px] sm:text-xs">{trackerStats.totalAtivas}</span>
+            <span className="hidden sm:inline font-mono text-[11px]">Ativas</span>
             {trackerStats.totalFinalizadas > 0 && (
               <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-1.5 py-0.2 rounded-full">
                 🏆 {trackerStats.totalFinalizadas}
@@ -849,14 +851,15 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           {/* Botão de Auditoria do Sistema */}
           <button
             onClick={abrirAuditoria}
-            className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-300 hover:border-emerald-400 transition-colors cursor-pointer shadow-2xs"
+            className="flex items-center gap-1 sm:gap-1.5 text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 sm:px-2.5 py-1 rounded-md border border-emerald-300 hover:border-emerald-400 transition-colors cursor-pointer shadow-2xs active:scale-95"
             title="Abrir painel de auditoria técnica do sistema e testar cotações ao vivo"
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="hidden sm:inline">Auditoria:</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span className="hidden lg:inline">Auditoria:</span>
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>100% Online</span>
+              <span className="hidden sm:inline">100% Online</span>
+              <span className="sm:hidden text-[10px] font-bold text-emerald-700">Online</span>
             </span>
           </button>
         </div>
@@ -914,11 +917,11 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             <span>{filtroZonaApenas ? 'Na Zona' : 'Todos'}</span>
           </button>
 
-          {/* Botão de Refresh Rápido junto aos controles da barra */}
+          {/* Botão de Refresh Rápido na barra */}
           <button
             onClick={fetchOportunidades}
             disabled={carregandoOportunidades}
-            className="p-1 px-1.5 text-slate-600 hover:text-blue-700 bg-white hover:bg-blue-50 cursor-pointer rounded border border-slate-300 hover:border-blue-300 shrink-0 flex items-center gap-1 text-[10px] font-bold transition-colors shadow-2xs"
+            className="p-1 px-1.5 text-slate-600 hover:text-blue-700 bg-white hover:bg-blue-50 cursor-pointer rounded border border-slate-300 hover:border-blue-300 shrink-0 hidden md:flex items-center gap-1 text-[10px] font-bold transition-colors shadow-2xs"
             title="Atualizar cotações de tela ao vivo do pregão para as ações da barra"
           >
             <RefreshCw className={`w-2.5 h-2.5 text-blue-600 ${carregandoOportunidades ? 'animate-spin' : ''}`} />
@@ -928,17 +931,17 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           {/* Atalho de Metas na Barra */}
           <button
             onClick={() => setModalMetasAberto(true)}
-            className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-bold border border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100 shrink-0 cursor-pointer shadow-2xs transition-colors"
+            className="hidden lg:flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-bold border border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100 shrink-0 cursor-pointer shadow-2xs transition-colors"
             title="Abrir painel de acompanhamento de metas até o Preço Justo de Graham"
           >
             <Target className="w-2.5 h-2.5 text-blue-600" />
             <span>Metas ({trackerStats.totalAtivas})</span>
           </button>
 
-          {/* Atalho para abrir a grade completa de oportunidades em telas menores */}
+          {/* Atalho para abrir a grade completa de oportunidades em telas médias */}
           <button
             onClick={() => setMobileTab('oportunidades')}
-            className={`lg:hidden flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 cursor-pointer transition-colors ${
+            className={`hidden sm:flex lg:hidden items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 cursor-pointer transition-colors ${
               mobileTab === 'oportunidades'
                 ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                 : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'
@@ -1048,100 +1051,106 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
       {/* ========================================================= */}
       {/* SELETOR MOBILE / TABLET (APARECE EM CELULAR E TABLET <lg) */}
       {/* ========================================================= */}
-      <div className="flex lg:hidden bg-slate-100 border-b border-slate-300 px-2 sm:px-3 py-1 items-center justify-between text-xs font-bold shrink-0 overflow-x-auto scrollbar-none gap-2">
-        <span className="text-slate-500 text-[10px] font-mono shrink-0 uppercase tracking-wider">Aba:</span>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={() => setMobileTab('oportunidades')}
-            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+      {/* ========================================================= */}
+      {/* SELETOR MOBILE / TABLET (APARECE EM CELULAR E TABLET <lg) */}
+      {/* ========================================================= */}
+      <nav className="flex lg:hidden bg-slate-100 border-b border-slate-300 px-1.5 sm:px-3 py-1 items-center justify-start sm:justify-center text-xs font-bold shrink-0 overflow-x-auto scrollbar-none gap-1 sm:gap-1.5 touch-pan-x">
+        {/* Aba 1: Oportunidades */}
+        <button
+          onClick={() => setMobileTab('oportunidades')}
+          className={`px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
+            mobileTab === 'oportunidades'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5 shrink-0" />
+          <span>Oportunidades</span>
+          <span
+            className={`text-[9px] font-mono px-1 rounded-full ${
               mobileTab === 'oportunidades'
-                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                ? 'bg-blue-800 text-white'
+                : 'bg-emerald-100 text-emerald-800 font-bold'
             }`}
           >
-            <Activity className="w-3.5 h-3.5 shrink-0" />
-            <span>Oportunidades</span>
-            <span
-              className={`text-[9px] font-mono px-1 rounded-full ${
-                mobileTab === 'oportunidades'
-                  ? 'bg-blue-800 text-white'
-                  : 'bg-emerald-100 text-emerald-800 font-bold'
-              }`}
-            >
-              {totalNaZona}
-            </span>
-          </button>
+            {totalNaZona}
+          </span>
+        </button>
 
-          {/* Nova Aba de Metas no Mobile/Tablet */}
-          <button
-            onClick={() => setMobileTab('metas')}
-            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+        {/* Aba 2: Metas */}
+        <button
+          onClick={() => setMobileTab('metas')}
+          className={`px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
+            mobileTab === 'metas'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          <Target className="w-3.5 h-3.5 shrink-0" />
+          <span>Metas</span>
+          <span
+            className={`text-[9px] font-mono px-1 rounded-full ${
               mobileTab === 'metas'
-                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                ? 'bg-blue-800 text-white'
+                : 'bg-blue-100 text-blue-800 font-bold'
             }`}
           >
-            <Target className="w-3.5 h-3.5 shrink-0" />
-            <span>Metas</span>
-            <span
-              className={`text-[9px] font-mono px-1 rounded-full ${
-                mobileTab === 'metas'
-                  ? 'bg-blue-800 text-white'
-                  : 'bg-blue-100 text-blue-800 font-bold'
-              }`}
-            >
-              {trackerStats.totalAtivas}
+            {trackerStats.totalAtivas}
+          </span>
+          {trackerStats.totalFinalizadas > 0 && (
+            <span className="text-[9px] font-mono px-1 rounded-full bg-emerald-600 text-white font-bold">
+              🏆{trackerStats.totalFinalizadas}
             </span>
-            {trackerStats.totalFinalizadas > 0 && (
-              <span className="text-[9px] font-mono px-1 rounded-full bg-emerald-600 text-white font-bold">
-                🏆{trackerStats.totalFinalizadas}
-              </span>
-            )}
-          </button>
+          )}
+        </button>
 
-          <button
-            onClick={() => setMobileTab('info')}
-            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
-              mobileTab === 'info'
-                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+        {/* Aba 3: Valuation do ativo selecionado */}
+        <button
+          onClick={() => setMobileTab('info')}
+          className={`px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
+            mobileTab === 'info'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+          <span>Valuation</span>
+          <span
+            className={`text-[9px] font-mono px-1 rounded ${
+              mobileTab === 'info' ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-700'
             }`}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-            <span>Valuation</span>
-            <span
-              className={`text-[9px] font-mono px-1 rounded ${
-                mobileTab === 'info' ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-700'
-              }`}
-            >
-              {ativo.ticker}
-            </span>
-          </button>
-          <button
-            onClick={() => setMobileTab('copilot')}
-            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
-              mobileTab === 'copilot'
-                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-            }`}
-          >
-            <Bot className="w-3.5 h-3.5 shrink-0" />
-            <span>AntiTrader AI</span>
-          </button>
-          <button
-            onClick={() => setMobileTab('ambas')}
-            className={`px-2 sm:px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
-              mobileTab === 'ambas'
-                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">Lado a Lado</span>
-            <span className="sm:hidden">Ambas</span>
-          </button>
-        </div>
-      </div>
+            {ativo.ticker}
+          </span>
+        </button>
+
+        {/* Aba 4: AntiTrader AI */}
+        <button
+          onClick={() => setMobileTab('copilot')}
+          className={`px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
+            mobileTab === 'copilot'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          <Bot className="w-3.5 h-3.5 shrink-0" />
+          <span>AntiTrader AI</span>
+        </button>
+
+        {/* Aba 5: Ambas (Visível em Tablets e telas maiores) */}
+        <button
+          onClick={() => setMobileTab('ambas')}
+          className={`hidden sm:flex px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold items-center gap-1.5 cursor-pointer transition-all border shrink-0 active:scale-95 ${
+            mobileTab === 'ambas'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+          }`}
+          title="Modo Tablet: Visualizar Valuation e AntiTrader AI lado a lado"
+        >
+          <Layers className="w-3.5 h-3.5 shrink-0" />
+          <span>Lado a Lado</span>
+        </button>
+      </nav>
 
       {/* ========================================================= */}
       {/* ÁREA PRINCIPAL: RESPONSIVA (MOBILE, TABLET E DESKTOP)     */}
@@ -1644,6 +1653,17 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                 <span className="text-[8px]">●</span>
                 <span>{calc.status === 'COMPRA' ? 'ZONA DE COMPRA' : calc.status === 'JUSTO' ? 'PREÇO JUSTO' : 'CARO (AGUARDAR)'}</span>
               </div>
+
+              {/* Botão de Atalho Rápido para a IA no Mobile / Tablet */}
+              <button
+                type="button"
+                onClick={() => setMobileTab('copilot')}
+                className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-md border border-blue-300 transition-colors cursor-pointer shadow-2xs shrink-0"
+                title="Abrir chat do AntiTrader AI para este ativo"
+              >
+                <Bot className="w-3.5 h-3.5 text-blue-600" />
+                <span>Perguntar à IA</span>
+              </button>
             </div>
           </div>
 
@@ -1926,7 +1946,18 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               </div>
             </div>
 
-            <div className="flex items-center gap-1 text-slate-600 shrink-0">
+            <div className="flex items-center gap-1.5 text-slate-600 shrink-0">
+              {/* Botão de Atalho Rápido para Voltar ao Valuation no Mobile / Tablet */}
+              <button
+                type="button"
+                onClick={() => setMobileTab('info')}
+                className="lg:hidden flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 px-2 py-0.5 rounded cursor-pointer transition-colors shadow-2xs"
+                title="Voltar ao Terminal de Valuation"
+              >
+                <SlidersHorizontal className="w-3 h-3 text-blue-600" />
+                <span>Valuation</span>
+              </button>
+
               <span className="text-[10px] font-mono bg-emerald-50 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded font-medium flex items-center gap-1" title="Capacidade de realizar pesquisas em tempo real">
                 <Globe className="w-3 h-3 text-emerald-600 animate-pulse" />
                 <span className="hidden md:inline">Web Research</span>
@@ -2073,8 +2104,9 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
 
               <div className="flex items-center justify-between pt-1.5 border-t border-slate-200 text-[11px] text-slate-600 mt-1">
                 <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500">
-                  <Sparkles className="w-3 h-3 text-blue-600" />
-                  <span>Pesquisa web e análise fundamentalista ativas</span>
+                  <Sparkles className="w-3 h-3 text-blue-600 shrink-0" />
+                  <span className="hidden sm:inline">Pesquisa web e análise fundamentalista ativas</span>
+                  <span className="sm:hidden">Pesquisa Web Ativa</span>
                 </div>
 
                 <button
