@@ -868,7 +868,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
   }, [oportunidades, filtroMercado, filtroZonaApenas, buscaTicker]);
 
   return (
-    <div className="h-screen w-screen max-w-full bg-[#f8f9fa] text-[#1e293b] font-sans flex flex-col overflow-hidden select-none">
+    <div className="h-full h-dvh w-full max-w-full bg-[#f8f9fa] text-[#1e293b] font-sans flex flex-col overflow-hidden select-none">
       
       {/* Banner de Notificação de Metas Alcançadas */}
       {metaNotification && (
@@ -897,7 +897,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
       {/* ========================================================= */}
       {/* HEADER PRINCIPAL RESPONSIVO COM IDENTIDADE ANTITRADER      */}
       {/* ========================================================= */}
-      <header className="h-12 bg-white border-b border-slate-300 px-3 sm:px-4 flex items-center justify-between shrink-0 z-20 gap-2">
+      <header className="bg-white border-b border-slate-300 px-3 sm:px-4 flex items-center justify-between shrink-0 z-20 gap-2 min-h-[48px] pt-[env(safe-area-inset-top,0px)]">
         
         {/* Logo / Marca AntiTrader */}
         <div className="flex items-center gap-2 shrink-0">
@@ -2025,7 +2025,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           </div>
 
           {/* Mensagens do Chat com Steps de Auditoria e Formatação Rica */}
-          <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 text-xs leading-relaxed font-sans min-h-[220px]">
+          <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 text-xs leading-relaxed font-sans min-h-0">
             {chatMessages.map((msg) => (
               <div key={msg.id} className="space-y-1.5">
                 
@@ -2131,17 +2131,17 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             ))}
           </div>
 
-          {/* Caixa de Digitação do Chat - Ampla, Confortável e com Mais Espaço */}
-          <div className="p-2.5 bg-white border-t border-slate-300 shrink-0">
+          {/* Caixa de Digitação do Chat - Geometria Perfeita e Ajuste Fino para Mobile e Desktop */}
+          <div className="p-3 sm:p-3.5 bg-white border-t border-slate-300 shrink-0 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))]">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleEnviarMensagem();
               }}
-              className="border-2 border-slate-300 focus-within:border-blue-600 rounded-lg p-2.5 bg-slate-50 transition-colors"
+              className="border-2 border-slate-300 focus-within:border-blue-600 rounded-xl p-2.5 sm:p-3 bg-slate-50/90 transition-colors shadow-2xs"
             >
               <textarea
-                rows={3}
+                rows={2}
                 value={inputMsg}
                 onChange={(e) => setInputMsg(e.target.value)}
                 onKeyDown={(e) => {
@@ -2150,21 +2150,21 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                     handleEnviarMensagem();
                   }
                 }}
-                placeholder={`Pergunte qualquer tema (valuation, balanços, macro, concorrentes, notícias, conceitos)...`}
-                className="w-full bg-transparent text-xs text-slate-900 placeholder-slate-400 outline-none resize-none font-sans min-h-[60px]"
+                placeholder="Pergunte qualquer tema (valuation, balanços, macro, concorrentes, notícias, conceitos)..."
+                className="w-full bg-transparent text-xs text-slate-900 placeholder-slate-400 outline-none resize-none font-sans min-h-[44px] max-h-[120px]"
               />
 
-              <div className="flex items-center justify-between pt-1.5 border-t border-slate-200 text-[11px] text-slate-600 mt-1">
-                <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500">
+              <div className="flex items-center justify-between pt-2 border-t border-slate-200 text-[11px] text-slate-600 mt-1 gap-2">
+                <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500 truncate min-w-0">
                   <Sparkles className="w-3 h-3 text-blue-600 shrink-0" />
-                  <span className="hidden sm:inline">Pesquisa web e análise fundamentalista ativas</span>
-                  <span className="sm:hidden">Pesquisa Web Ativa</span>
+                  <span className="hidden sm:inline truncate">Pesquisa web e análise fundamentalista ativas</span>
+                  <span className="sm:hidden truncate">Pesquisa Web Ativa</span>
                 </div>
 
                 <button
                   type="submit"
                   disabled={enviandoMsg || !inputMsg.trim()}
-                  className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium text-xs cursor-pointer transition-colors flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold text-xs cursor-pointer transition-colors flex items-center gap-1.5 shadow-2xs active:scale-95 shrink-0"
                 >
                   <span>Enviar</span>
                   <Send className="w-3 h-3" />
