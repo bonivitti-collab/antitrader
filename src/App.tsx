@@ -831,10 +831,10 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             <span className="hidden xl:inline">{copiado ? 'Copiado!' : 'Copiar'}</span>
           </button>
 
-          {/* Botão de Acompanhamento de Metas de Preço Graham */}
+          {/* Botão de Acompanhamento de Metas de Preço Graham (Visível em Tablets e Desktops) */}
           <button
             onClick={() => setModalMetasAberto(true)}
-            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md border border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-xs font-bold text-blue-900 transition-colors cursor-pointer shadow-2xs active:scale-95"
+            className="hidden sm:flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md border border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-xs font-bold text-blue-900 transition-colors cursor-pointer shadow-2xs active:scale-95"
             title="Acompanhar variações de preço até o objetivo (Preço Justo Graham) e histórico de metas finalizadas"
           >
             <Target className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -1065,7 +1065,8 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           }`}
         >
           <Activity className="w-3.5 h-3.5 shrink-0" />
-          <span>Oportunidades</span>
+          <span className="hidden sm:inline">Oportunidades</span>
+          <span className="sm:hidden">Oportun.</span>
           <span
             className={`text-[9px] font-mono px-1 rounded-full ${
               mobileTab === 'oportunidades'
