@@ -868,8 +868,11 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
   }, [oportunidades, filtroMercado, filtroZonaApenas, buscaTicker]);
 
   return (
-    <div className="h-full h-dvh w-full max-w-full bg-[#f8f9fa] text-[#1e293b] font-sans flex flex-col overflow-hidden select-none">
+    <div className="h-full h-dvh w-full max-w-full bg-white text-[#1e293b] font-sans flex flex-col overflow-hidden select-none">
       
+      {/* Barra Superior Sólida de Ancoragem Safe-Area para iOS Safari & PWA (Elimina o efeito esfumaçado/embaçado) */}
+      <div className="w-full bg-white shrink-0 h-[env(safe-area-inset-top,0px)]" />
+
       {/* Banner de Notificação de Metas Alcançadas */}
       {metaNotification && (
         <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-3 py-1.5 flex items-center justify-between text-xs font-bold shadow-md z-30 shrink-0">
@@ -897,7 +900,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
       {/* ========================================================= */}
       {/* HEADER PRINCIPAL RESPONSIVO COM IDENTIDADE ANTITRADER      */}
       {/* ========================================================= */}
-      <header className="bg-white border-b border-slate-300 px-3 sm:px-4 flex items-center justify-between shrink-0 z-20 gap-2 min-h-[48px] pt-[env(safe-area-inset-top,0px)]">
+      <header className="bg-white border-b border-slate-300 px-3 sm:px-4 flex items-center justify-between shrink-0 z-20 gap-2 min-h-[48px]">
         
         {/* Logo / Marca AntiTrader */}
         <div className="flex items-center gap-2 shrink-0">
@@ -2209,7 +2212,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
       {/* MODAL: AUDITORIA OPERACIONAL & DIAGNÓSTICOS EM TEMPO REAL  */}
       {/* ========================================================= */}
       {modalScanInfoAberto && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+        <div className="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3 sm:p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full border-2 border-slate-300 overflow-hidden max-h-[92vh] flex flex-col">
             
             {/* Header do Modal */}
