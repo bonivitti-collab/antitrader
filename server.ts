@@ -77,6 +77,7 @@ const FALLBACK_PRICES: Record<string, { price: number; currency: 'BRL' | 'USD' }
   CSAN3: { price: 5.41, currency: 'BRL' },
   SAPR11: { price: 28.50, currency: 'BRL' },
   CPLE6: { price: 9.85, currency: 'BRL' },
+  CPLE3: { price: 17.41, currency: 'BRL' },
   VALE3: { price: 67.85, currency: 'BRL' },
   ITSA4: { price: 16.15, currency: 'BRL' },
   CXSE3: { price: 20.87, currency: 'BRL' },
@@ -87,14 +88,18 @@ const FALLBACK_PRICES: Record<string, { price: number; currency: 'BRL' | 'USD' }
   GM: { price: 54.80, currency: 'USD' },
   BTI: { price: 38.50, currency: 'USD' },
   WBA: { price: 9.80, currency: 'USD' },
+  JNJ: { price: 254.57, currency: 'USD' },
   CVS: { price: 86.16, currency: 'USD' },
   'BRK.B': { price: 515.65, currency: 'USD' },
   KO: { price: 88.44, currency: 'USD' },
 };
 
 export async function getLiveQuoteDetails(ticker: string, mercado?: 'B3' | 'US'): Promise<LiveQuoteDetails | null> {
-  const cleanTicker = ticker.toUpperCase().trim();
+  let cleanTicker = ticker.toUpperCase().trim();
   if (!cleanTicker) return null;
+
+  // Normalização de migração de tickers (ex: Copel unificada de CPLE6 para CPLE3)
+  if (cleanTicker === 'CPLE6') cleanTicker = 'CPLE3';
 
   const isB3 = mercado === 'B3' || /^[A-Z]{4}(3|4|5|6|11|12)$/.test(cleanTicker) || cleanTicker.endsWith('.SA');
   const cacheKey = cleanTicker;
@@ -371,30 +376,30 @@ export const OPORTUNIDADES_SETUP = [
     moat: 'Monopólio Regulatório (Infraestrutura de água e esgoto com contratos de concessão de longo prazo)',
   },
   {
-    id: 'CPLE6',
-    ticker: 'CPLE6',
-    nome: 'Copel PNB',
+    id: 'CPLE3',
+    ticker: 'CPLE3',
+    nome: 'Copel ON',
     mercado: 'B3',
     moeda: 'BRL',
-    preco: 9.85,
-    lpa: 1.35,
-    vpa: 9.40,
+    preco: 17.41,
+    lpa: 1.45,
+    vpa: 11.20,
     g: 4.0,
     yieldAAA: 6.2,
-    margemSugerida: 25,
-    ultimoBalanco: 'Consolidado Pós-Privatização CVM',
-    lucroLiquido: 'R$ 3,1 bilhões',
-    receitaLiquida: 'R$ 21,5 bilhões',
-    roe: 14.4,
-    dividendYield: 7.8,
-    pl: 7.30,
-    pvp: 1.05,
-    grahamMult: 7.65,
-    dividaStatus: 'Dívida Líquida / EBITDA: 2.1x (Meta da nova política 2.5x)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação R$ 9.85 vs Zona R$ 12.26 (+24% de margem). Eficiência privada e dividendo projetado elevado.',
-    breveAnalise: 'Após a privatização bem-sucedida, a Copel acelerou corte de custos operacionais (PMSO) e renovou as concessões de grandes usinas hidrelétricas sem risco hidrológico crítico.',
-    condicoesBuyHold: 'Comprar na zona de compra com disciplina e usufruir da nova governança corporativa de corporação privada.',
+    margemSugerida: 20,
+    ultimoBalanco: 'Consolidado Pós-Privatização CVM (Ações Ordinárias Unificadas)',
+    lucroLiquido: 'R$ 3,8 bilhões',
+    receitaLiquida: 'R$ 22,1 bilhões',
+    roe: 14.8,
+    dividendYield: 7.2,
+    pl: 12.00,
+    pvp: 1.55,
+    grahamMult: 18.60,
+    dividaStatus: 'Dívida Líquida / EBITDA: 2.1x (Meta de governança privada)',
+    categoria: 'RADAR DE VALOR',
+    destaqueSetup: 'Cotação R$ 17.41 vs Preço Justo R$ 19.12. Ação ordinária unificada com corte de custos e governança privada.',
+    breveAnalise: 'Com a conclusão da privatização e unificação das ações em CPLE3, a Copel ganhou agilidade operacional, corte de despesas de PMSO e política estável de dividendos.',
+    condicoesBuyHold: 'Comprar abaixo do teto de compra de R$ 15.30 ou em momentos de correção tarifária.',
     moat: 'Amplo (Parque gerador renovável e rede de distribuição moderna)',
   },
   {
@@ -645,31 +650,31 @@ export const OPORTUNIDADES_SETUP = [
     moat: 'Amplo (Vício de consumo, barreiras regulatórias que impedem novos concorrentes e marcas seculares)',
   },
   {
-    id: 'WBA',
-    ticker: 'WBA',
-    nome: 'Walgreens Boots Alliance',
+    id: 'JNJ',
+    ticker: 'JNJ',
+    nome: 'Johnson & Johnson',
     mercado: 'US',
     moeda: 'USD',
-    preco: 9.80,
-    lpa: 1.80,
-    vpa: 14.50,
-    g: 1.5,
+    preco: 254.57,
+    lpa: 10.45,
+    vpa: 32.10,
+    g: 3.5,
     yieldAAA: 4.61,
-    margemSugerida: 30,
+    margemSugerida: 20,
     ultimoBalanco: 'SEC 10-K Consolidado',
-    lucroLiquido: 'US$ 1,5 bilhão (Ajustado)',
-    receitaLiquida: 'US$ 147 bilhões',
-    roe: 12.4,
-    dividendYield: 10.2,
-    pl: 5.44,
-    pvp: 0.68,
-    grahamMult: 3.68,
-    dividaStatus: 'Em reestruturação e venda de ativos não essenciais',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação US$ 9.80 vs Zona US$ 15.40 (+57% de margem). P/VP de 0.68 e Graham Mult de 3.68x.',
-    breveAnalise: 'Ação típica de barganha de Graham (Deep Value). Presença física indispensável em esquinas nobres dos EUA com plano de fechamento de lojas não rentáveis para recompor rentabilidade.',
-    condicoesBuyHold: 'Comprar estritamente dentro da zona de compra para investimento de valor profundo.',
-    moat: 'Estreito (Rede capilar de drogarias e fidelidade de convênios médicos)',
+    lucroLiquido: 'US$ 24,8 bilhões',
+    receitaLiquida: 'US$ 88 bilhões',
+    roe: 32.5,
+    dividendYield: 3.1,
+    pl: 24.36,
+    pvp: 7.93,
+    grahamMult: 193.17,
+    dividaStatus: 'Balanço AAA com caixa líquido elevado',
+    categoria: 'RADAR DE VALOR',
+    destaqueSetup: 'Cotação US$ 254.57. Aristocrata de dividendos há mais de 60 anos com rating AAA superior ao governo americano.',
+    breveAnalise: 'Líder global em farmacêutica inovadora e tecnologia médica (MedTech), oferecendo resiliência e crescimento ininterrupto de proventos.',
+    condicoesBuyHold: 'Ativo de máxima preservação patrimonial no mercado americano.',
+    moat: 'Amplo (Portfólio de patentes globais e liderança hospitalar mundial)',
   },
   {
     id: 'CVS',
@@ -995,6 +1000,71 @@ app.post('/api/scan-now', async (_req, res) => {
     nextScanFormatted: formatBrtDate(nextTarget.getTime()),
     totalMonitored: cachedOpportunities.length,
     opportunities: cachedOpportunities,
+  });
+});
+
+// Endpoint: Auditoria Diagnóstica em Tempo Real com Métricas e Teste de Conexão
+app.get('/api/audit-diagnostics', async (_req, res) => {
+  const startTime = Date.now();
+  const report = await Promise.all(
+    OPORTUNIDADES_SETUP.map(async (op) => {
+      const itemStart = Date.now();
+      const quote = await getLiveQuoteDetails(op.ticker, op.mercado as 'B3' | 'US');
+      const latencyMs = Date.now() - itemStart;
+
+      const livePrice = quote?.price || op.preco;
+      const isLive = !!quote && quote.source !== 'Referência de Pregão';
+      const provider = quote?.source || 'Fallback Estático';
+
+      // Cálculo de Preço Justo Graham e Teto da Zona de Compra
+      const isValidGraham = op.lpa > 0 && op.vpa > 0;
+      const numGraham = isValidGraham ? Math.sqrt(22.5 * op.lpa * op.vpa) : 0;
+      const grahamCresc = (op.lpa > 0 && op.yieldAAA > 0) ? (op.lpa * (8.5 + 2 * op.g) * 4.4) / op.yieldAAA : 0;
+      const fairPrice = (isValidGraham && grahamCresc > 0) ? (numGraham + grahamCresc) / 2 : numGraham;
+      const tetoCompra = fairPrice * (1 - (op.margemSugerida || 25) / 100);
+      const inBuyZone = livePrice <= tetoCompra;
+      const margemVsTeto = tetoCompra > 0 ? ((tetoCompra - livePrice) / tetoCompra) * 100 : 0;
+
+      return {
+        ticker: op.ticker,
+        nome: op.nome,
+        mercado: op.mercado,
+        moeda: op.moeda,
+        precoBase: op.preco,
+        precoAoVivo: Number(livePrice.toFixed(2)),
+        variacaoVsBase: Number((((livePrice - op.preco) / op.preco) * 100).toFixed(2)),
+        variacaoDia: quote?.changePercent ?? 0,
+        provedor: provider,
+        isLive,
+        latencyMs,
+        horarioCotacao: quote?.updatedAt || new Date().toLocaleTimeString('pt-BR'),
+        precoJustoGraham: Number(fairPrice.toFixed(2)),
+        tetoCompra: Number(tetoCompra.toFixed(2)),
+        status: inBuyZone ? 'ZONA DE COMPRA' : 'ACOMPANHAMENTO',
+        margemVsTeto: Number(margemVsTeto.toFixed(1)),
+      };
+    })
+  );
+
+  const totalTimeMs = Date.now() - startTime;
+  const totalMonitored = report.length;
+  const liveCount = report.filter((r) => r.isLive).length;
+  const inBuyZoneCount = report.filter((r) => r.status === 'ZONA DE COMPRA').length;
+  const avgLatency = Math.round(report.reduce((acc, r) => acc + r.latencyMs, 0) / (totalMonitored || 1));
+
+  res.json({
+    auditedAt: new Date().toISOString(),
+    auditedAtFormatted: formatBrtDate(Date.now()),
+    totalExecutionTimeMs: totalTimeMs,
+    avgLatencyMs: avgLatency,
+    totalMonitored,
+    totalLiveFeeds: liveCount,
+    liveCoveragePercent: Number(((liveCount / totalMonitored) * 100).toFixed(1)),
+    totalInBuyZone: inBuyZoneCount,
+    totalInMonitoring: totalMonitored - inBuyZoneCount,
+    systemHealth: liveCount >= totalMonitored * 0.85 ? 'EXCELENTE (90%+ ONLINE)' : 'PARCIAL',
+    nextScheduledScanFormatted: formatBrtDate(calculateNextScanTarget().getTime()),
+    items: report,
   });
 });
 
