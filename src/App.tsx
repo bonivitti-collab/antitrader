@@ -304,36 +304,49 @@ export default function GrahamBuyZoneWorkspace() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Hook de arrasto suave dos divisores redimensionáveis
+  // Persistência automática das preferências de largura no localStorage do notebook/desktop
+  useEffect(() => {
+    try {
+      localStorage.setItem('antitrader_panel_left_width', leftWidth.toString());
+    } catch {}
+  }, [leftWidth]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('antitrader_panel_right_width', rightWidth.toString());
+    } catch {}
+  }, [rightWidth]);
+
+  // Hook de arrasto suave dos divisores redimensionáveis (Mouse & Touchscreen para notebooks 2-em-1)
   useEffect(() => {
     if (!redimensionando) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
       if (redimensionando === 'left') {
-        const novo = Math.max(240, Math.min(Math.min(500, window.innerWidth - 650), e.clientX));
+        const novo = Math.max(240, Math.min(Math.min(500, window.innerWidth - 650), clientX));
         setLeftWidth(novo);
       } else if (redimensionando === 'right') {
-        const novo = Math.max(280, Math.min(Math.min(580, window.innerWidth - 650), window.innerWidth - e.clientX));
+        const novo = Math.max(280, Math.min(Math.min(580, window.innerWidth - 650), window.innerWidth - clientX));
         setRightWidth(novo);
       }
     };
 
-    const handleMouseUp = () => {
-      if (redimensionando === 'left') {
-        localStorage.setItem('antitrader_panel_left_width', leftWidth.toString());
-      } else if (redimensionando === 'right') {
-        localStorage.setItem('antitrader_panel_right_width', rightWidth.toString());
-      }
+    const handlePointerUp = () => {
       setRedimensionando(null);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    window.addEventListener('touchmove', handlePointerMove);
+    window.addEventListener('touchend', handlePointerUp);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('touchmove', handlePointerMove);
+      window.removeEventListener('touchend', handlePointerUp);
     };
-  }, [redimensionando, leftWidth, rightWidth]);
+  }, [redimensionando]);
 
   // Varredura Diária Programada (19:00 Horário de Brasília) & Contagem Regressiva
   const [scanStatus, setScanStatus] = useState<{
@@ -1367,6 +1380,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               e.preventDefault();
               setRedimensionando('left');
             }}
+            onTouchStart={() => setRedimensionando('left')}
             onDoubleClick={() => setLeftWidth(320)}
             className="hidden lg:flex w-[5px] hover:w-[7px] bg-slate-200 hover:bg-blue-500 cursor-col-resize shrink-0 transition-all z-10 items-center justify-center group relative select-none"
             title="Arraste para redimensionar o painel de oportunidades no notebook. Clique duplo para redefinir para 320px."
@@ -1926,6 +1940,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               e.preventDefault();
               setRedimensionando('right');
             }}
+            onTouchStart={() => setRedimensionando('right')}
             onDoubleClick={() => setRightWidth(380)}
             className="hidden lg:flex w-[5px] hover:w-[7px] bg-slate-200 hover:bg-blue-500 cursor-col-resize shrink-0 transition-all z-10 items-center justify-center group relative select-none"
             title="Arraste para redimensionar o painel AntiTrader AI no notebook. Clique duplo para redefinir para 380px."
