@@ -9,6 +9,19 @@ html, body, #root {
   overflow: hidden;
   background-color: #ffffff;
   color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Otimização de latência de clique/toque: elimina o atraso de 300ms do mobile */
+button, [role="button"], a, input, select, .cursor-pointer {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Aceleração de GPU para interações frequentes */
+.will-change-transform {
+  will-change: transform;
 }
 
 /* Barras de rolagem refinadas, finas e discretas (elimina barras grosseiras e cinzas padrão) */

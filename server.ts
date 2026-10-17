@@ -92,6 +92,15 @@ const FALLBACK_PRICES: Record<string, { price: number; currency: 'BRL' | 'USD' }
   CVS: { price: 86.16, currency: 'USD' },
   'BRK.B': { price: 515.65, currency: 'USD' },
   KO: { price: 88.44, currency: 'USD' },
+  HGLG11: { price: 156.40, currency: 'BRL' },
+  MXRF11: { price: 9.80, currency: 'BRL' },
+  KNIP11: { price: 88.50, currency: 'BRL' },
+  XPML11: { price: 104.20, currency: 'BRL' },
+  BTLG11: { price: 98.50, currency: 'BRL' },
+  O: { price: 56.10, currency: 'USD' },
+  PLD: { price: 108.50, currency: 'USD' },
+  SPG: { price: 165.20, currency: 'USD' },
+  VICI: { price: 31.20, currency: 'USD' },
 };
 
 export async function getLiveQuoteDetails(ticker: string, mercado?: 'B3' | 'US'): Promise<LiveQuoteDetails | null> {
@@ -207,557 +216,21 @@ async function getLivePrice(ticker: string, mercado: 'B3' | 'US'): Promise<numbe
   return details ? details.price : null;
 }
 
-// Banco de dados de Oportunidades Reais calibradas pelo setup Graham-Buffett
-// Cotações nominais do pregão B3 / NYSE e balanços consolidados recentes auditados
-export const OPORTUNIDADES_SETUP = [
-  // ==========================================
-  // B3 (BRASIL) - NA ZONA DE COMPRA / DESCONTO
-  // ==========================================
-  {
-    id: 'BBAS3',
-    ticker: 'BBAS3',
-    nome: 'Banco do Brasil',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 24.64,
-    lpa: 6.18,
-    vpa: 34.80,
-    g: 4.5,
-    yieldAAA: 6.2,
-    margemSugerida: 30,
-    ultimoBalanco: 'Auditado CVM (Consolidado Recente - Pós-Desdobramento)',
-    lucroLiquido: 'R$ 36,4 bilhões',
-    receitaLiquida: 'R$ 104,2 bilhões',
-    roe: 21.4,
-    dividendYield: 9.8,
-    pl: 3.99,
-    pvp: 0.71,
-    grahamMult: 2.82,
-    dividaStatus: 'Instituição Financeira (Índice de Basileia 16.2% - Saudável)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação R$ 24.64 vs Zona R$ 51.21 (+108% de margem). P/L 4.0x e Graham Mult de 2.82x (limite Graham 22.50).',
-    breveAnalise: 'O Banco do Brasil é a maior oportunidade de valuation da B3. ROE de 21.4% superior a pares privados, negociando a 71% do valor patrimonial com liderança em agronegócio defensivo.',
-    condicoesBuyHold: 'Comprar abaixo do teto da Zona com disciplina. Payout de 40-45% e forte remuneração ao acionista.',
-    moat: 'Amplo (Monopólio prático no crédito rural oficial, convênio exclusivo de folhas salariais e funding de depósitos a custo baixo)',
-  },
-  {
-    id: 'PETR4',
-    ticker: 'PETR4',
-    nome: 'Petrobras PN',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 55.93,
-    lpa: 7.85,
-    vpa: 30.80,
-    g: 3.5,
-    yieldAAA: 6.2,
-    margemSugerida: 25,
-    ultimoBalanco: 'Consolidado Recente (CVM)',
-    lucroLiquido: 'R$ 88,2 bilhões',
-    receitaLiquida: 'R$ 498 bilhões',
-    roe: 25.5,
-    dividendYield: 12.8,
-    pl: 7.12,
-    pvp: 1.82,
-    grahamMult: 12.94,
-    dividaStatus: 'Dívida Líquida / EBITDA: 0.9x (Controlada)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação R$ 55.93 vs Zona R$ 60.04 (dentro da zona com 25% de margem). Graham Mult de 12.94x e dividendos de dois dígitos.',
-    breveAnalise: 'A Petrobras opera no pré-sal com custo de extração (lifting cost) de classe mundial abaixo de US$ 6/barril. Geração massiva de fluxo de caixa livre operacional.',
-    condicoesBuyHold: 'Comprar dentro da Zona de Compra com disciplina e monitorar plano quinquenal de investimentos.',
-    moat: 'Amplo (Direitos geológicos e escala massiva no pré-sal da Bacia de Santos)',
-  },
-  {
-    id: 'BBDC4',
-    ticker: 'BBDC4',
-    nome: 'Banco Bradesco PN',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 21.63,
-    lpa: 2.70,
-    vpa: 16.50,
-    g: 4.0,
-    yieldAAA: 6.2,
-    margemSugerida: 25,
-    ultimoBalanco: 'Consolidado CVM (Plano de Transformação)',
-    lucroLiquido: 'R$ 19,8 bilhões',
-    receitaLiquida: 'R$ 78,5 bilhões',
-    roe: 14.2,
-    dividendYield: 6.8,
-    pl: 8.01,
-    pvp: 1.31,
-    grahamMult: 10.50,
-    dividaStatus: 'Basileia III: 15.8% (Sólido e Capitalizado)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação R$ 21.63 vs Zona R$ 23.73 (Preço Justo R$ 31.64). Graham Mult de 10.50x, bem abaixo do teto de 22.50.',
-    breveAnalise: 'Em ciclo de recuperação operacional (turnaround de rentabilidade) com controle rigoroso de inadimplência e expansão na seguradora Bradesco Seguros, que representa quase 40% do lucro.',
-    condicoesBuyHold: 'Aquisição tática de banco líder em momento de reprecificação com proventos mensais recorrentes.',
-    moat: 'Amplo (Segunda maior rede privada do país, força da marca e sinergia imbatível com Bradesco Seguros)',
-  },
-  {
-    id: 'CMIG4',
-    ticker: 'CMIG4',
-    nome: 'Cemig PN',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 12.10,
-    lpa: 1.95,
-    vpa: 9.80,
-    g: 3.5,
-    yieldAAA: 6.2,
-    margemSugerida: 25,
-    ultimoBalanco: 'Consolidado Recente CVM',
-    lucroLiquido: 'R$ 5,3 bilhões',
-    receitaLiquida: 'R$ 36,2 bilhões',
-    roe: 19.9,
-    dividendYield: 10.5,
-    pl: 6.21,
-    pvp: 1.23,
-    grahamMult: 7.66,
-    dividaStatus: 'Dívida Líquida / EBITDA: 1.3x (Alavancagem prudente)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação R$ 12.10 vs Zona R$ 15.82 (+31% de margem de segurança). Dividend Yield de 10.5% e Graham Mult 7.66x.',
-    breveAnalise: 'A Cemig atua nos segmentos integrados de geração, transmissão e distribuição de energia em MG. Receitas previsíveis e contratos indexados à inflação (IPCA/IGP-M).',
-    condicoesBuyHold: 'Excelente ativo de geração de renda passiva e dividendos em setor perene da economia (utilidade pública).',
-    moat: 'Amplo (Concessões de infraestrutura essenciais com monopólio regulado de distribuição)',
-  },
-  {
-    id: 'CSAN3',
-    ticker: 'CSAN3',
-    nome: 'Cosan S.A.',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 5.41,
-    lpa: 0.90,
-    vpa: 8.20,
-    g: 4.0,
-    yieldAAA: 6.2,
-    margemSugerida: 30,
-    ultimoBalanco: 'Consolidado CVM (Foco em Desalavancagem)',
-    lucroLiquido: 'R$ 1,65 bilhão',
-    receitaLiquida: 'R$ 41,2 bilhões',
-    roe: 11.0,
-    dividendYield: 4.2,
-    pl: 6.01,
-    pvp: 0.66,
-    grahamMult: 3.97,
-    dividaStatus: 'Plano de Desalavancagem e venda de ativos em curso',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação R$ 5.41 vs Zona R$ 8.20 (+51% de margem de desconto). Negociando a 66% do valor patrimonial (P/VP 0.66).',
-    breveAnalise: 'Holding detentora de joias de infraestrutura (Rumo, Raízen, Compass e Moove). O mercado precificou pessimismo excessivo com a alavancagem, gerando assimetria favorável.',
-    condicoesBuyHold: 'Comprar abaixo da zona com foco no plano de venda de ativos minoritários e re-rating da holding.',
-    moat: 'Amplo (Ativos de infraestrutura logística ferroviária e gás natural insubstituíveis no Brasil)',
-  },
-  {
-    id: 'SAPR11',
-    ticker: 'SAPR11',
-    nome: 'Sanepar Units',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 28.50,
-    lpa: 4.10,
-    vpa: 29.80,
-    g: 4.5,
-    yieldAAA: 6.2,
-    margemSugerida: 25,
-    ultimoBalanco: 'Consolidado CVM',
-    lucroLiquido: 'R$ 1,58 bilhão',
-    receitaLiquida: 'R$ 6,8 bilhões',
-    roe: 13.8,
-    dividendYield: 7.2,
-    pl: 6.95,
-    pvp: 0.96,
-    grahamMult: 6.65,
-    dividaStatus: 'Dívida Líquida / EBITDA: 1.5x (Margem regulatória saudável)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação R$ 28.50 vs Zona R$ 38.76 (+36% de margem). Negociando abaixo do patrimônio (P/VP 0.96) e Graham Mult de 6.65x.',
-    breveAnalise: 'Companhia de saneamento básico do Paraná. Demanda 100% inelástica, monopólio de atendimento em quase todos os municípios do estado e fluxo de caixa estável.',
-    condicoesBuyHold: 'Ativo previdenciário clássico com dividendos consistentes e proteção contra crises econômicas.',
-    moat: 'Monopólio Regulatório (Infraestrutura de água e esgoto com contratos de concessão de longo prazo)',
-  },
-  {
-    id: 'CPLE3',
-    ticker: 'CPLE3',
-    nome: 'Copel ON',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 17.41,
-    lpa: 1.45,
-    vpa: 11.20,
-    g: 4.0,
-    yieldAAA: 6.2,
-    margemSugerida: 20,
-    ultimoBalanco: 'Consolidado Pós-Privatização CVM (Ações Ordinárias Unificadas)',
-    lucroLiquido: 'R$ 3,8 bilhões',
-    receitaLiquida: 'R$ 22,1 bilhões',
-    roe: 14.8,
-    dividendYield: 7.2,
-    pl: 12.00,
-    pvp: 1.55,
-    grahamMult: 18.60,
-    dividaStatus: 'Dívida Líquida / EBITDA: 2.1x (Meta de governança privada)',
-    categoria: 'RADAR DE VALOR',
-    destaqueSetup: 'Cotação R$ 17.41 vs Preço Justo R$ 19.12. Ação ordinária unificada com corte de custos e governança privada.',
-    breveAnalise: 'Com a conclusão da privatização e unificação das ações em CPLE3, a Copel ganhou agilidade operacional, corte de despesas de PMSO e política estável de dividendos.',
-    condicoesBuyHold: 'Comprar abaixo do teto de compra de R$ 15.30 ou em momentos de correção tarifária.',
-    moat: 'Amplo (Parque gerador renovável e rede de distribuição moderna)',
-  },
-  {
-    id: 'VALE3',
-    ticker: 'VALE3',
-    nome: 'Vale S.A.',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 67.85,
-    lpa: 7.90,
-    vpa: 42.10,
-    g: 3.0,
-    yieldAAA: 6.2,
-    margemSugerida: 20,
-    ultimoBalanco: 'Consolidado Recente (CVM / SEC)',
-    lucroLiquido: 'R$ 39,8 bilhões',
-    receitaLiquida: 'R$ 205 bilhões',
-    roe: 20.0,
-    dividendYield: 7.6,
-    pl: 8.59,
-    pvp: 1.61,
-    grahamMult: 13.84,
-    dividaStatus: 'Dívida Líquida Expandida: US$ 14.8B (Meta US$ 10-15B)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação R$ 67.85 vs Zona R$ 67.12 (Limiar exato da zona com 20% de margem). Preço Justo Graham R$ 83.90.',
-    breveAnalise: 'Líder mundial em minério de ferro com teor premium. O custo caixa C1 de US$ 22/t garante geração de caixa mesmo com o minério em momentos de baixa do ciclo.',
-    condicoesBuyHold: 'Comprar em baixas de ciclo de commodities e reinvestir os proventos semestrais.',
-    moat: 'Amplo (Reservas de Carajás com 67% teor de ferro e ferrovia própria EFVM/EFC)',
-  },
-  {
-    id: 'ITSA4',
-    ticker: 'ITSA4',
-    nome: 'Itaúsa Holding',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 16.15,
-    lpa: 1.58,
-    vpa: 9.20,
-    g: 5.5,
-    yieldAAA: 6.2,
-    margemSugerida: 20,
-    ultimoBalanco: 'Consolidado Recente CVM',
-    lucroLiquido: 'R$ 14,1 bilhões',
-    receitaLiquida: 'R$ 15,2 bilhões (Equiv. Patrimonial)',
-    roe: 19.8,
-    dividendYield: 7.8,
-    pl: 10.22,
-    pvp: 1.76,
-    grahamMult: 17.94,
-    dividaStatus: 'Dívida Líquida / EBITDA Holding: 0.2x (Mínima)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação R$ 16.15 vs Zona R$ 15.98 (Limiar da zona). Graham Mult 17.94x e desconto holding de ~18% sobre o Itaú.',
-    breveAnalise: 'Holding que repassa os lucros do maior banco privado da América Latina somado a investimentos estratégicos em infraestrutura saneamento (Aegea) e rodovias (CCR).',
-    condicoesBuyHold: 'Ativo excelente para reinvestimento de juros sobre capital próprio (JCP) e dividendos regulares.',
-    moat: 'Amplo (Controle do Itaú Unibanco e empresas consolidadas)',
-  },
-  {
-    id: 'CXSE3',
-    ticker: 'CXSE3',
-    nome: 'Caixa Seguridade',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 20.87,
-    lpa: 1.25,
-    vpa: 4.60,
-    g: 6.5,
-    yieldAAA: 6.2,
-    margemSugerida: 25,
-    ultimoBalanco: 'Consolidado Recente CVM',
-    lucroLiquido: 'R$ 3,82 bilhões',
-    receitaLiquida: 'R$ 4,95 bilhões',
-    roe: 48.2,
-    dividendYield: 8.4,
-    pl: 16.70,
-    pvp: 4.54,
-    grahamMult: 75.82,
-    dividaStatus: 'Caixa Líquido Positivo (Zero Dívida)',
-    categoria: 'RADAR DE DIVIDENDOS',
-    destaqueSetup: 'Cotação R$ 20.87 (Preço Justo R$ 15.22). ROE extraordinário de 48.2% e payout de 90%+, aguardar recuo até a zona.',
-    breveAnalise: 'Monopólio de balcão na Caixa Econômica Federal sem risco de crédito bancário. Modelo de negócios leve em capital que distribui praticamente todo o lucro.',
-    condicoesBuyHold: 'Excelente negócio para manter em carteira, porém aguardar janelas de queda para novos aportes na Zona.',
-    moat: 'Amplo (Direito de exclusividade no balcão da Caixa até 2050)',
-  },
-  {
-    id: 'WEGE3',
-    ticker: 'WEGE3',
-    nome: 'WEG S.A.',
-    mercado: 'B3',
-    moeda: 'BRL',
-    preco: 51.53,
-    lpa: 1.52,
-    vpa: 4.80,
-    g: 13.0,
-    yieldAAA: 6.2,
-    margemSugerida: 20,
-    ultimoBalanco: 'Consolidado Recente CVM',
-    lucroLiquido: 'R$ 6,38 bilhões',
-    receitaLiquida: 'R$ 38,5 bilhões',
-    roe: 31.6,
-    dividendYield: 2.1,
-    pl: 33.90,
-    pvp: 10.74,
-    grahamMult: 364.09,
-    dividaStatus: 'Caixa Líquido Positivo',
-    categoria: 'RADAR DE CRESCIMENTO',
-    destaqueSetup: 'Cotação R$ 51.53 vs Teto Zona R$ 17.51. Ativo extraordinário, mas o múltiplo atual (P/L 33x) exige aguardar correção.',
-    breveAnalise: 'Líder mundial em motores elétricos e transição energética. Padrão ouro em governança com ROE de 31%, mas no momento precificada com alto ágio de mercado.',
-    condicoesBuyHold: 'Comprar em correções severas de mercado e segurar para crescimento composto secular.',
-    moat: 'Amplo (Cultura industrial e rede de distribuição em 135 países)',
-  },
+// Banco de dados e universo de ativos (S&P 500, Top 50 B3, FIIs Brasileiros e REITs Americanos)
+import { OPORTUNIDADES_SETUP, type Oportunidade } from './src/data/oportunidades.ts';
+import {
+  GLOBAL_UNIVERSE,
+  UNIVERSE_B3_TOP50,
+  UNIVERSE_FIIS_BR,
+  UNIVERSE_REITS_US,
+  UNIVERSE_SP500,
+  findInUniverse,
+  searchUniverse,
+  getUniverseStats,
+  type UniverseAsset,
+} from './src/data/universe.ts';
 
-  // ==========================================
-  // S&P 500 (EUA) - NA ZONA DE COMPRA / DESCONTO
-  // ==========================================
-  {
-    id: 'PFE',
-    ticker: 'PFE',
-    nome: 'Pfizer Inc.',
-    mercado: 'US',
-    moeda: 'USD',
-    preco: 28.28,
-    lpa: 2.85,
-    vpa: 16.50,
-    g: 4.0,
-    yieldAAA: 4.61,
-    margemSugerida: 25,
-    ultimoBalanco: 'SEC 10-K Consolidado',
-    lucroLiquido: 'US$ 16,2 bilhões (Ajustado)',
-    receitaLiquida: 'US$ 58,5 bilhões',
-    roe: 17.2,
-    dividendYield: 6.1,
-    pl: 9.92,
-    pvp: 1.71,
-    grahamMult: 17.01,
-    dividaStatus: 'Dívida Líquida / EBITDA: 2.4x (Em desalavancagem com sinergias da Seagen)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação US$ 28.28 vs Zona US$ 29.03 (Preço Justo US$ 38.71). Graham Mult de 17.01x (abaixo de 22.50) e Yield de 6.1% em dólar.',
-    breveAnalise: 'Gigante biofarmacêutica negociando nos múltiplos mais descontados da última década. Aquisição da Seagen reforça pipeline em oncologia, enquanto paga proventos recordes.',
-    condicoesBuyHold: 'Comprar na zona de compra e reinvestir dividendos superiores a 6% ao ano em moeda forte.',
-    moat: 'Amplo (Portfólio global de patentes farmacêuticas e rede hospitalar mundial)',
-  },
-  {
-    id: 'F',
-    ticker: 'F',
-    nome: 'Ford Motor Company',
-    mercado: 'US',
-    moeda: 'USD',
-    preco: 12.17,
-    lpa: 1.70,
-    vpa: 11.40,
-    g: 2.5,
-    yieldAAA: 4.61,
-    margemSugerida: 25,
-    ultimoBalanco: 'SEC 10-K Consolidado',
-    lucroLiquido: 'US$ 4,3 bilhões',
-    receitaLiquida: 'US$ 176 bilhões',
-    roe: 9.8,
-    dividendYield: 5.8,
-    pl: 7.16,
-    pvp: 1.07,
-    grahamMult: 7.64,
-    dividaStatus: 'Ford Credit alavancado com suporte de portfólio automotivo',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação US$ 12.17 vs Zona US$ 16.04 (+32% de margem de segurança). P/L de 7.1x e Graham Mult de 7.64x.',
-    breveAnalise: 'A Ford é líder incontestável em veículos utilitários e comerciais na América do Norte (F-150 / Ford Pro), divisão com margens EBIT de dois dígitos que financia a transição híbrida.',
-    condicoesBuyHold: 'Comprar abaixo do teto com disciplina de valuation cíclico e colher dividendos acima de 5% ao ano.',
-    moat: 'Estreito (Marca histórica americana e dominância em frotas comerciais)',
-  },
-  {
-    id: 'T',
-    ticker: 'T',
-    nome: 'AT&T Inc.',
-    mercado: 'US',
-    moeda: 'USD',
-    preco: 22.18,
-    lpa: 2.45,
-    vpa: 16.20,
-    g: 3.0,
-    yieldAAA: 4.61,
-    margemSugerida: 25,
-    ultimoBalanco: 'SEC 10-K Consolidado',
-    lucroLiquido: 'US$ 15,2 bilhões',
-    receitaLiquida: 'US$ 122 bilhões',
-    roe: 12.9,
-    dividendYield: 5.1,
-    pl: 9.05,
-    pvp: 1.37,
-    grahamMult: 12.39,
-    dividaStatus: 'Fluxo de Caixa Livre: US$ 16.8 bilhões (Forte desalavancagem)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação US$ 22.18 vs Zona US$ 23.92 (Preço Justo US$ 31.90). Múltiplo Graham de 12.39x e fluxo de caixa livre massivo.',
-    breveAnalise: 'Após o desinvestimento da WarnerMedia, a AT&T voltou a ser uma tele pura com foco em fibra ótica e 5G pós-pago nos EUA, gerando US$ 16+ bilhões de fluxo de caixa livre.',
-    condicoesBuyHold: 'Ativo defensivo de geração de renda em dólar com proteção de demanda essencial.',
-    moat: 'Amplo (Oligopólio de telecomunicações móveis nos EUA com altíssima barreira de entrada em infraestrutura)',
-  },
-  {
-    id: 'GM',
-    ticker: 'GM',
-    nome: 'General Motors Co.',
-    mercado: 'US',
-    moeda: 'USD',
-    preco: 54.80,
-    lpa: 9.80,
-    vpa: 58.20,
-    g: 3.0,
-    yieldAAA: 4.61,
-    margemSugerida: 25,
-    ultimoBalanco: 'SEC 10-K Consolidado',
-    lucroLiquido: 'US$ 10,1 bilhões',
-    receitaLiquida: 'US$ 171 bilhões',
-    roe: 16.8,
-    dividendYield: 1.8,
-    pl: 5.59,
-    pvp: 0.94,
-    grahamMult: 5.27,
-    dividaStatus: 'Recompras de ações massivas reduzindo free float',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação US$ 54.80 vs Zona US$ 93.34 (+70% de margem de segurança). P/L de apenas 5.6x e abaixo do valor de livro (P/VP 0.94).',
-    breveAnalise: 'A GM vem realizando o maior programa de recompra de ações do setor automobilístico, elevando o LPA de forma contínua com lucros sólidos de picapes e SUVs de alta margem.',
-    condicoesBuyHold: 'Comprar com margem de segurança para surfar as recompras e expansão de margens operacionais.',
-    moat: 'Estreito a Amplo (Rede de concessionárias consolidada nos EUA e liderança em SUVs)',
-  },
-  {
-    id: 'BTI',
-    ticker: 'BTI',
-    nome: 'British American Tobacco (ADR)',
-    mercado: 'US',
-    moeda: 'USD',
-    preco: 38.50,
-    lpa: 4.40,
-    vpa: 36.20,
-    g: 2.5,
-    yieldAAA: 4.61,
-    margemSugerida: 25,
-    ultimoBalanco: 'SEC 20-F Consolidado',
-    lucroLiquido: 'US$ 8,8 bilhões (Ajustado)',
-    receitaLiquida: 'US$ 34,5 bilhões',
-    roe: 12.1,
-    dividendYield: 8.6,
-    pl: 8.75,
-    pvp: 1.06,
-    grahamMult: 9.31,
-    dividaStatus: 'Dívida Líquida / EBITDA: 2.6x (Fluxo de caixa livre constante)',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação US$ 38.50 vs Zona US$ 43.71 (+14% de margem). Dividend Yield de 8.6% em dólar e Graham Mult de 9.31x.',
-    breveAnalise: 'Geradora de caixa anticíclica global com poder de precificação perpétuo. Crescimento nas novas categorias não-combustíveis (Vuse, Glo, Velo) com margens brutas superiores a 70%.',
-    condicoesBuyHold: 'Ativo focado em rendimento em moeda forte para fluxo de dividendos.',
-    moat: 'Amplo (Vício de consumo, barreiras regulatórias que impedem novos concorrentes e marcas seculares)',
-  },
-  {
-    id: 'JNJ',
-    ticker: 'JNJ',
-    nome: 'Johnson & Johnson',
-    mercado: 'US',
-    moeda: 'USD',
-    preco: 254.57,
-    lpa: 10.45,
-    vpa: 32.10,
-    g: 3.5,
-    yieldAAA: 4.61,
-    margemSugerida: 20,
-    ultimoBalanco: 'SEC 10-K Consolidado',
-    lucroLiquido: 'US$ 24,8 bilhões',
-    receitaLiquida: 'US$ 88 bilhões',
-    roe: 32.5,
-    dividendYield: 3.1,
-    pl: 24.36,
-    pvp: 7.93,
-    grahamMult: 193.17,
-    dividaStatus: 'Balanço AAA com caixa líquido elevado',
-    categoria: 'RADAR DE VALOR',
-    destaqueSetup: 'Cotação US$ 254.57. Aristocrata de dividendos há mais de 60 anos com rating AAA superior ao governo americano.',
-    breveAnalise: 'Líder global em farmacêutica inovadora e tecnologia médica (MedTech), oferecendo resiliência e crescimento ininterrupto de proventos.',
-    condicoesBuyHold: 'Ativo de máxima preservação patrimonial no mercado americano.',
-    moat: 'Amplo (Portfólio de patentes globais e liderança hospitalar mundial)',
-  },
-  {
-    id: 'CVS',
-    ticker: 'CVS',
-    nome: 'CVS Health Corp.',
-    mercado: 'US',
-    moeda: 'USD',
-    preco: 86.16,
-    lpa: 6.80,
-    vpa: 58.40,
-    g: 4.5,
-    yieldAAA: 4.61,
-    margemSugerida: 20,
-    ultimoBalanco: 'SEC 10-K Consolidado',
-    lucroLiquido: 'US$ 8,1 bilhões',
-    receitaLiquida: 'US$ 357 bilhões',
-    roe: 11.6,
-    dividendYield: 3.1,
-    pl: 12.67,
-    pvp: 1.48,
-    grahamMult: 18.69,
-    dividaStatus: 'Fluxo de Caixa Livre: US$ 13.4 bilhões',
-    categoria: 'ZONA DE COMPRA',
-    destaqueSetup: 'Cotação US$ 86.16 vs Zona US$ 83.24 (Preço Justo US$ 104.05). Graham Mult de 18.69x (abaixo de 22.50) e fluxo de caixa de US$ 13B.',
-    breveAnalise: 'A CVS integra varejo farmacêutico com seguro saúde (Aetna) e gestão de benefícios clínicos. Modelo anticíclico essencial nos EUA.',
-    condicoesBuyHold: 'Negócio de saúde integrada com fluxo de caixa anual resiliente.',
-    moat: 'Amplo (Rede integrada de saúde e seguradora capilar nos EUA)',
-  },
-  {
-    id: 'BRK.B',
-    ticker: 'BRK.B',
-    nome: 'Berkshire Hathaway Inc.',
-    mercado: 'US',
-    moeda: 'USD',
-    preco: 515.65,
-    lpa: 22.40,
-    vpa: 310.00,
-    g: 7.0,
-    yieldAAA: 4.61,
-    margemSugerida: 25,
-    ultimoBalanco: 'SEC 10-K Consolidado',
-    lucroLiquido: 'US$ 37,4 bilhões (Operating Earnings)',
-    receitaLiquida: 'US$ 364 bilhões',
-    roe: 14.5,
-    dividendYield: 0.0,
-    pl: 23.02,
-    pvp: 1.66,
-    grahamMult: 38.21,
-    dividaStatus: 'Caixa e T-Bills: Mais de US$ 325 bilhões (Fortaleza Máxima)',
-    categoria: 'RADAR DE VALOR',
-    destaqueSetup: 'Cotação US$ 515.65 (Teto Zona US$ 306.71). Fortaleza suprema de Buffett com mais de US$ 325 bilhões em caixa, aguardar recuo.',
-    breveAnalise: 'A holding de Warren Buffett une float de seguros a custo negativo, ferrovias e blue chips globais.',
-    condicoesBuyHold: 'O protótipo perfeito de Buy & Hold: zero dependência de dívida de curto prazo.',
-    moat: 'Incomparável (Ecossistema de seguros e liquidez incomparável no mundo corporativo)',
-  },
-  {
-    id: 'KO',
-    ticker: 'KO',
-    nome: 'Coca-Cola Company',
-    mercado: 'US',
-    moeda: 'USD',
-    preco: 88.44,
-    lpa: 2.95,
-    vpa: 6.80,
-    g: 5.5,
-    yieldAAA: 4.61,
-    margemSugerida: 20,
-    ultimoBalanco: 'Consolidado Recente (10-K)',
-    lucroLiquido: 'US$ 10,7 bilhões',
-    receitaLiquida: 'US$ 46 bilhões',
-    roe: 43.4,
-    dividendYield: 2.9,
-    pl: 29.98,
-    pvp: 13.01,
-    grahamMult: 390.04,
-    dividaStatus: 'Alavancagem Líquida / EBITDA: 1.8x',
-    categoria: 'RADAR DE VALOR',
-    destaqueSetup: 'Cotação US$ 88.44 (Teto Zona US$ 26.65). 62 anos consecutivos de aumento de dividendos, aguardar promoção.',
-    breveAnalise: 'Empresa icônica com poder de precificação e presença global em mais de 200 países.',
-    condicoesBuyHold: 'Ativo de preservação de valor e poder de repasse de inflação eterno.',
-    moat: 'Amplo (Marca mais valiosa do setor e sistema de engarrafadores exclusivo)',
-  },
-];
+export { OPORTUNIDADES_SETUP };
 
 async function generateContentWithRetry(params: {
   contents: string;
@@ -983,10 +456,24 @@ app.get('/api/scan-status', (_req, res) => {
       }
       return false;
     }).length,
+    universeStats: getUniverseStats(),
     scanSchedulePolicy: 'Diariamente às 19:00 (Horário de Brasília) - Pós-Fechamento B3 e Wall Street',
     refreshButtonRole: 'Os botões de refresh são dedicados à cotação instantânea de tela ao vivo durante o pregão.',
     executionSummary: lastScanSummary,
   });
+});
+
+// Endpoint: Estatísticas do Universo de Cobertura (504 S&P 500, Top 50 B3, FIIs e REITs)
+app.get('/api/universe-stats', (_req, res) => {
+  res.json(getUniverseStats());
+});
+
+// Endpoint: Busca Rápida no Universo Geral Monitorado (597 ativos)
+app.get('/api/universe-search', (req, res) => {
+  const q = String(req.query.q || '').trim();
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit || 20)));
+  const results = searchUniverse(q, limit);
+  res.json(results);
 });
 
 // Endpoint: Disparo manual de varredura geral imediata sob demanda
@@ -1064,6 +551,7 @@ app.get('/api/audit-diagnostics', async (_req, res) => {
     totalInMonitoring: totalMonitored - inBuyZoneCount,
     systemHealth: liveCount >= totalMonitored * 0.85 ? 'EXCELENTE (90%+ ONLINE)' : 'PARCIAL',
     nextScheduledScanFormatted: formatBrtDate(calculateNextScanTarget().getTime()),
+    universeStats: getUniverseStats(),
     items: report,
   });
 });
@@ -1157,33 +645,72 @@ app.post('/api/gemini/search-financials', async (req, res) => {
       });
     }
 
+    // 1.5 Identifica se o ativo está no Universo Monitorado Geral (504 S&P 500, Top 50 B3, FIIs, REITs)
+    const assetUniverse = findInUniverse(cleanQuery);
+    const isFII = assetUniverse?.tipo === 'FII' || (/^[A-Z]{4}11$/i.test(cleanQuery) && !['BOVA11', 'SMAL11', 'IVVB11'].includes(cleanQuery));
+    const isREIT = assetUniverse?.tipo === 'REIT';
+    const tipoDetectado: 'AÇÃO' | 'FII' | 'REIT' = isFII ? 'FII' : isREIT ? 'REIT' : 'AÇÃO';
+
     // 2. Se for uma nova empresa, consulta cotação ao vivo primeiro
-    const mercadoDetectado = cleanQuery.endsWith('3') || cleanQuery.endsWith('4') || cleanQuery.endsWith('11') ? 'B3' : 'US';
+    const mercadoDetectado = assetUniverse?.mercado || (cleanQuery.endsWith('3') || cleanQuery.endsWith('4') || cleanQuery.endsWith('11') ? 'B3' : 'US');
     const liveQuote = await getLiveQuoteDetails(cleanQuery, mercadoDetectado);
     const livePrice = liveQuote?.price || null;
 
-    const prompt = `Analise e extraia os dados REAIS e CONSOLIDADOS do balanço recente (TTM / 4T24 / Anual recente) para a ação ou empresa: "${cleanQuery}".
-Cotação recente de mercado detectada: ${livePrice ? livePrice : 'busque a cotação real recente de mercado'}.
-
-Forneça valores numéricos reais para balanço de ações na B3 ou bolsas americanas:
-- ticker oficial (ex: WEGE3, AAPL, MSFT, BBDC4, TAEE11)
-- nome completo oficial
-- moeda: 'BRL' para ações brasileiras ou 'USD' para americanas
-- mercado: 'B3' ou 'US'
-- preco: ${livePrice || 'cotação real recente de fechamento'}
+    const instrucoesTipo = isFII
+      ? `DIRETRIZES CALIBRADAS PARA FUNDO IMOBILIÁRIO (FII BRASILEIRO):
+- tipoAtivo: 'FII'
+- lpa: Rendimento Anual Distribuído por Cota em R$ (soma dos últimos 12 meses de proventos/dividendos mensais por cota)
+- vpa: Valor Patrimonial por Cota (VP/cota contábil do fundo)
+- pl: Múltiplo Preço / Rendimento Anual (P/DPA)
+- pvp: P/VP real do fundo (cotação de mercado dividida pelo VP/cota)
+- dividaStatus: Alavancagem / LTV (ex: "Sem alavancagem" ou "LTV 12% controlado")
+- moat: Qualidade do portfólio físico, localização prime, vacância física e financeira reduzida e contratos atípicos
+- yieldAAA: taxa referencial (6.2% para Brasil)`
+      : isREIT
+      ? `DIRETRIZES CALIBRADAS PARA REIT AMERICANO (REAL ESTATE INVESTMENT TRUST):
+- tipoAtivo: 'REIT'
+- lpa: FFO (Funds from Operations) anualizado por ação em US$ (métrica padrão de caixa imobiliário em substituição ao EPS)
+- vpa: Net Asset Value (NAV) por ação em US$
+- pl: Preço / FFO por ação (P/FFO)
+- pvp: Preço / NAV por ação (P/NAV)
+- dividaStatus: Estrutura de capital (Debt/EBITDA ou LTV)
+- moat: Escala imobiliária, contratos Triple Net (NNN), qualidade dos inquilinos e previsibilidade de caixa
+- yieldAAA: taxa referencial (4.61% para EUA)`
+      : `DIRETRIZES PARA AÇÃO DE EMPRESA:
+- tipoAtivo: 'AÇÃO'
 - lpa: Lucro Líquido por Ação consolidado TTM
 - vpa: Valor Patrimonial por Ação consolidado mais recente
-- g: taxa de crescimento anual dos lucros conservadora para os próximos 5-7 anos (%)
-- yieldAAA: taxa referencial (6.2% para Brasil, 4.61% para EUA)
-- ultimoBalanco: identificação do balanço (ex: "Consolidado Recente / CVM")
-- lucroLiquido: valor com unidade (ex: "R$ 5,6 bilhões")
-- receitaLiquida: valor com unidade (ex: "R$ 32,8 bilhões")
-- roe: Return on Equity em %
-- dividendYield: Dividend Yield 12m em %
 - pl: múltiplo P/L aproximado
 - pvp: múltiplo P/VP aproximado
-- grahamMult: produto P/L x P/VP
 - dividaStatus: status da dívida (ex: "Dívida Líq/EBITDA: 0.9x" ou "Caixa Líquido")
+- moat: classificação do fosso econômico ("Amplo", "Estreito" ou "Inexistente")`;
+
+    const prompt = `Analise e extraia os dados REAIS e CONSOLIDADOS do balanço recente (TTM / 4T24 / Anual recente) para o ativo: "${cleanQuery}" (${assetUniverse?.nome || cleanQuery}).
+Cotação recente de mercado detectada: ${livePrice ? livePrice : 'busque a cotação real recente de mercado'}.
+Tipo de ativo: ${tipoDetectado}.
+
+${instrucoesTipo}
+
+Forneça valores numéricos reais para o ativo na B3 ou bolsas americanas:
+- ticker oficial (ex: ${assetUniverse?.ticker || cleanQuery})
+- nome completo oficial: ${assetUniverse?.nome || 'nome oficial'}
+- tipoAtivo: '${tipoDetectado}'
+- moeda: '${mercadoDetectado === 'B3' ? 'BRL' : 'USD'}'
+- mercado: '${mercadoDetectado}'
+- preco: ${livePrice || 'cotação real recente de fechamento'}
+- lpa: ${isFII ? 'Rendimento/dividendo anual por cota em R$' : isREIT ? 'FFO por ação em US$' : 'Lucro Líquido por Ação consolidado TTM'}
+- vpa: ${isFII ? 'VP por cota em R$' : isREIT ? 'NAV por ação em US$' : 'Valor Patrimonial por Ação consolidado'}
+- g: taxa de crescimento anual dos lucros conservadora para os próximos 5-7 anos (%)
+- yieldAAA: taxa referencial (${mercadoDetectado === 'B3' ? '6.2' : '4.61'}%)
+- ultimoBalanco: identificação do balanço (ex: "Informe Mensal CVM" ou "Consolidado Recente SEC")
+- lucroLiquido: valor com unidade (ex: "R$ 520 milhões" ou "US$ 1.2 bilhões")
+- receitaLiquida: valor com unidade
+- roe: Return on Equity em % (ou Rentabilidade s/ Patrimônio)
+- dividendYield: Dividend Yield 12m em %
+- pl: múltiplo P/L ou P/FFO
+- pvp: múltiplo P/VP
+- grahamMult: produto P/L x P/VP
+- dividaStatus: status da dívida
 - breveAnalise: 2-3 frases de análise objetiva da qualidade e momento do ativo
 - condicoesBuyHold: critérios se é ou não recomendada para a filosofia Buy & Hold (moat, histórico de governança, pagamento de dividendos e barreiras de entrada)
 - moat: classificação do fosso econômico ("Amplo", "Estreito" ou "Inexistente")`;
@@ -1191,12 +718,13 @@ Forneça valores numéricos reais para balanço de ações na B3 ou bolsas ameri
     const response = await generateContentWithRetry({
       contents: prompt,
       systemInstruction:
-        'Você é um analista financeiro credenciado especializado em valuation e balanços patrimoniais. Retorne apenas dados numéricos realistas e análises imparciais.',
+        'Você é um analista financeiro credenciado especializado em valuation, balanços patrimoniais, ações, FIIs e REITs. Retorne apenas dados numéricos realistas e análises imparciais.',
       responseSchema: {
         type: Type.OBJECT,
         properties: {
           ticker: { type: Type.STRING },
           nome: { type: Type.STRING },
+          tipoAtivo: { type: Type.STRING, enum: ['AÇÃO', 'FII', 'REIT'] },
           moeda: { type: Type.STRING, enum: ['BRL', 'USD'] },
           mercado: { type: Type.STRING, enum: ['B3', 'US'] },
           preco: { type: Type.NUMBER },
@@ -1244,6 +772,7 @@ Forneça valores numéricos reais para balanço de ações na B3 ou bolsas ameri
     });
 
     const parsed = JSON.parse(response.text || '{}');
+    parsed.tipoAtivo = parsed.tipoAtivo || tipoDetectado;
     if (livePrice && livePrice > 0) {
       parsed.preco = livePrice;
       if (parsed.lpa > 0) parsed.pl = Number((livePrice / parsed.lpa).toFixed(2));

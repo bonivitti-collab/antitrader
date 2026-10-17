@@ -39,6 +39,7 @@ import {
   calculateTrackerStats,
 } from './services/trackerService';
 import { MetasTrackerModal } from './components/MetasTrackerModal';
+import { searchUniverse, findInUniverse, getUniverseStats, type UniverseAsset } from './data/universe';
 
 export interface Oportunidade {
   id: string;
@@ -69,6 +70,7 @@ export interface Oportunidade {
   variacaoDia?: number;
   horarioCotacao?: string;
   origem?: string;
+  tipoAtivo?: 'AÇÃO' | 'FII' | 'REIT';
 }
 
 export interface StepTrace {
@@ -87,8 +89,8 @@ export interface ChatMessage {
   searchSources?: { title?: string; uri?: string }[];
 }
 
-// Renderizador Elegante de Markdown Financeiro (Tabelas, Listas, Títulos, Negrito)
-function FormattedMessage({ text }: { text: string }) {
+// Renderizador Elegante de Markdown Financeiro Memoizado (Elimina recomputações pesadas)
+const FormattedMessage = React.memo(function FormattedMessage({ text }: { text: string }) {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
   let tableRows: string[][] = [];
@@ -199,7 +201,51 @@ function FormattedMessage({ text }: { text: string }) {
   }
 
   return <div className="space-y-0.5 text-xs text-slate-800">{elements}</div>;
-}
+});
+
+// Componente Isolado de Contagem Regressiva (Elimina re-renderizações a cada segundo no workspace raiz)
+const CountdownDisplay = React.memo(function CountdownDisplay({
+  nextScanTime,
+  onExpired,
+  className = 'font-bold text-emerald-400',
+  prefix,
+}: {
+  nextScanTime?: number;
+  onExpired?: () => void;
+  className?: string;
+  prefix?: React.ReactNode;
+}) {
+  const [str, setStr] = useState<string>('--:--:--');
+
+  useEffect(() => {
+    if (!nextScanTime) return;
+
+    const calc = () => {
+      const diffSec = Math.max(0, Math.floor((nextScanTime - Date.now()) / 1000));
+      const hours = Math.floor(diffSec / 3600);
+      const minutes = Math.floor((diffSec % 3600) / 60);
+      const seconds = diffSec % 60;
+      setStr(
+        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+      );
+
+      if (diffSec === 0 && onExpired) {
+        onExpired();
+      }
+    };
+
+    calc();
+    const interval = setInterval(calc, 1000);
+    return () => clearInterval(interval);
+  }, [nextScanTime, onExpired]);
+
+  return (
+    <span className={className}>
+      {prefix}
+      {str}
+    </span>
+  );
+});
 
 export default function GrahamBuyZoneWorkspace() {
   // Controle de abas para telas pequenas (mobile/tablet)
@@ -267,7 +313,7 @@ export default function GrahamBuyZoneWorkspace() {
   const [feedbackCotacao, setFeedbackCotacao] = useState<string | null>(null);
 
   // Filtros da Barra de Oportunidades
-  const [filtroMercado, setFiltroMercado] = useState<'TODOS' | 'B3' | 'US'>('TODOS');
+  const [filtroMercado, setFiltroMercado] = useState<'TODOS' | 'B3' | 'US' | 'FII' | 'REIT'>('TODOS');
   const [filtroZonaApenas, setFiltroZonaApenas] = useState(true);
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>(OPORTUNIDADES_SETUP);
   const [carregandoOportunidades, setCarregandoOportunidades] = useState(false);
@@ -361,7 +407,7 @@ export default function GrahamBuyZoneWorkspace() {
     scanSchedulePolicy?: string;
     executionSummary?: string;
   } | null>(null);
-  const [countdownStr, setCountdownStr] = useState<string>('--:--:--');
+  // countdownStr isolado no CountdownDisplay para máxima performance de toque/clique
   const [executandoScanManual, setExecutandoScanManual] = useState(false);
   const [modalScanInfoAberto, setModalScanInfoAberto] = useState(false);
   const [feedbackScan, setFeedbackScan] = useState<string | null>(null);
@@ -557,29 +603,7 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
     return () => clearInterval(pollInterval);
   }, []);
 
-  // Relógio de Contagem Regressiva para a Próxima Varredura às 19:00 BRT
-  useEffect(() => {
-    const updateCountdown = () => {
-      if (scanStatus?.nextScanTime) {
-        const diffSec = Math.max(0, Math.floor((scanStatus.nextScanTime - Date.now()) / 1000));
-        const hours = Math.floor(diffSec / 3600);
-        const minutes = Math.floor((diffSec % 3600) / 60);
-        const seconds = diffSec % 60;
-        setCountdownStr(
-          `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-        );
-
-        if (diffSec === 0) {
-          fetchScanStatus();
-          fetchOportunidades();
-        }
-      }
-    };
-
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
-  }, [scanStatus?.nextScanTime]);
+  // O relógio regressivo agora é processado exclusivamente pelo componente isolado <CountdownDisplay />
 
   // Scroll automático do chat
   useEffect(() => {
@@ -600,6 +624,49 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
     setYieldAAA(op.yieldAAA);
     setMargem(op.margemSugerida || 30);
     setMoeda(m);
+  };
+
+  const [buscandoAtivoUniverso, setBuscandoAtivoUniverso] = useState(false);
+
+  // Consulta e carrega qualquer ativo do universo de 597 tickers (S&P 500, B3, FIIs, REITs) via Inteligência Fundamentalista
+  const analisarAtivoDoUniverso = async (ticker: string) => {
+    setBuscandoAtivoUniverso(true);
+    setFeedbackCotacao(`Consultando balanço contábil e cotação de ${ticker}...`);
+    try {
+      const res = await fetch('/api/gemini/search-financials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userApiKey ? { 'x-gemini-key': userApiKey } : {}),
+        },
+        body: JSON.stringify({ query: ticker }),
+      });
+
+      if (res.ok) {
+        const data: Oportunidade = await res.json();
+        carregarAtivo(data);
+        setOportunidades((prev) => {
+          if (!prev.some((o) => o.ticker.toUpperCase() === data.ticker.toUpperCase())) {
+            return [data, ...prev];
+          }
+          return prev.map((o) => (o.ticker.toUpperCase() === data.ticker.toUpperCase() ? data : o));
+        });
+        setFeedbackCotacao(`Ativo ${data.ticker} (${data.nome}) carregado e calibrado com sucesso!`);
+        setTimeout(() => setFeedbackCotacao(null), 4000);
+        if (!isDesktop) {
+          setMobileTab('info');
+        }
+      } else {
+        setFeedbackCotacao(`Não foi possível carregar balanço de ${ticker}.`);
+        setTimeout(() => setFeedbackCotacao(null), 4000);
+      }
+    } catch (err) {
+      console.error('Erro ao analisar ativo do universo:', err);
+      setFeedbackCotacao(`Erro de conexão ao analisar ${ticker}.`);
+      setTimeout(() => setFeedbackCotacao(null), 4000);
+    } finally {
+      setBuscandoAtivoUniverso(false);
+    }
   };
 
   // Garante que a moeda esteja sempre estritamente alinhada ao mercado do ativo (B3 sempre BRL / R$)
@@ -844,7 +911,15 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
   const oportunidadesFiltradas = useMemo(() => {
     return oportunidades
       .filter((op) => {
-        if (filtroMercado !== 'TODOS' && op.mercado !== filtroMercado) return false;
+        if (filtroMercado === 'B3') {
+          if (op.mercado !== 'B3' || op.tipoAtivo === 'FII') return false;
+        } else if (filtroMercado === 'US') {
+          if (op.mercado !== 'US' || op.tipoAtivo === 'REIT') return false;
+        } else if (filtroMercado === 'FII') {
+          if (op.tipoAtivo !== 'FII') return false;
+        } else if (filtroMercado === 'REIT') {
+          if (op.tipoAtivo !== 'REIT') return false;
+        }
         if (filtroZonaApenas) {
           const { zona } = calcularZonaPreco(op);
           if (op.preco > zona) return false;
@@ -866,6 +941,14 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         return descB - descA;
       });
   }, [oportunidades, filtroMercado, filtroZonaApenas, buscaTicker]);
+
+  // Busca em tempo real no Universo Expandido (504 S&P 500, Top 50 B3, FIIs e REITs)
+  const matchesUniverso = useMemo(() => {
+    if (!buscaTicker.trim()) return [];
+    return searchUniverse(buscaTicker.trim(), 4).filter(
+      (u) => !oportunidades.some((o) => o.ticker.toUpperCase() === u.ticker.toUpperCase())
+    );
+  }, [buscaTicker, oportunidades]);
 
   return (
     <div className="h-full h-dvh w-full max-w-full bg-white text-[#1e293b] font-sans flex flex-col overflow-hidden select-none">
@@ -1199,7 +1282,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               {/* Filtros Compactos: Mercado + Na Zona + Relógio 19h */}
               <div className="flex items-center justify-between gap-1 flex-wrap pt-1 text-[10px]">
                 <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded border border-slate-200">
-                  {(['TODOS', 'B3', 'US'] as const).map((m) => (
+                  {(['TODOS', 'B3', 'US', 'FII', 'REIT'] as const).map((m) => (
                     <button
                       key={m}
                       onClick={() => setFiltroMercado(m)}
@@ -1248,13 +1331,66 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                   title="Próxima varredura geral diária às 19:00 BRT"
                 >
                   <Clock className="w-2.5 h-2.5 text-emerald-400 animate-pulse shrink-0" />
-                  <span className="font-bold text-emerald-400">{countdownStr}</span>
+                  <CountdownDisplay nextScanTime={scanStatus?.nextScanTime} onExpired={() => { fetchScanStatus(); fetchOportunidades(); }} />
                 </button>
               </div>
             </div>
 
             {/* Lista Vertical com Rolagem Suave dos Cards de Oportunidades */}
             <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-0">
+              {/* Sugestões de Ativos do Universo Geral (597 ativos: S&P 500, B3, FIIs, REITs) */}
+              {matchesUniverso.length > 0 && (
+                <div className="bg-gradient-to-r from-slate-900 to-blue-950 p-2.5 rounded-xl border border-blue-500/40 text-white shadow-xs space-y-2 mb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-blue-400" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-blue-200">
+                        Universo Expandido (S&P 500, B3, FIIs, REITs)
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-slate-400 font-mono">597 ativos</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {matchesUniverso.map((item) => (
+                      <div
+                        key={item.ticker}
+                        className="flex items-center justify-between bg-slate-800/90 p-1.5 rounded-lg border border-slate-700 text-xs hover:border-slate-600 transition-colors"
+                      >
+                        <div className="min-w-0 pr-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-white text-xs">{item.ticker}</span>
+                            <span
+                              className={`text-[8px] px-1 py-0.2 rounded font-extrabold uppercase ${
+                                item.tipo === 'FII'
+                                  ? 'bg-teal-900 text-teal-200 border border-teal-700'
+                                  : item.tipo === 'REIT'
+                                  ? 'bg-purple-900 text-purple-200 border border-purple-700'
+                                  : item.mercado === 'B3'
+                                  ? 'bg-amber-900 text-amber-200 border border-amber-700'
+                                  : 'bg-indigo-900 text-indigo-200 border border-indigo-700'
+                              }`}
+                            >
+                              {item.tipo}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 block truncate max-w-[130px] sm:max-w-[190px]">
+                            {item.nome}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => analisarAtivoDoUniverso(item.ticker)}
+                          disabled={buscandoAtivoUniverso}
+                          className="px-2 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[10px] font-bold rounded cursor-pointer transition-colors flex items-center gap-1 shrink-0 shadow-2xs"
+                        >
+                          <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                          <span>{buscandoAtivoUniverso ? 'Analisando...' : 'Analisar'}</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {oportunidadesFiltradas.length === 0 ? (
                 <div className="bg-white border border-dashed border-slate-300 rounded-lg p-4 text-center">
                   <p className="text-xs text-slate-600 font-medium">Nenhum ativo encontrado.</p>
@@ -1301,11 +1437,15 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                             {op.ticker}
                           </span>
                           <span className={`text-[8px] font-extrabold px-1.5 py-0.2 rounded uppercase border ${
-                            op.mercado === 'B3'
+                            op.tipoAtivo === 'FII'
+                              ? 'bg-teal-50 text-teal-900 border-teal-300'
+                              : op.tipoAtivo === 'REIT'
+                              ? 'bg-purple-50 text-purple-900 border-purple-300'
+                              : op.mercado === 'B3'
                               ? 'bg-amber-50 text-amber-900 border-amber-300'
                               : 'bg-indigo-50 text-indigo-900 border-indigo-300'
                           }`}>
-                            {op.mercado}
+                            {op.tipoAtivo === 'FII' ? 'FII (B3)' : op.tipoAtivo === 'REIT' ? 'REIT (US)' : op.mercado}
                           </span>
                           {isSelected && (
                             <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-blue-600 text-white shadow-2xs">
@@ -2242,6 +2382,25 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             {/* Conteúdo do Modal */}
             <div className="p-4 space-y-4 overflow-y-auto text-xs text-slate-800 flex-1">
               
+              {/* Resumo do Universo Completo Monitorado */}
+              <div className="bg-[#0b1329] text-white p-3 rounded-lg border border-slate-750 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <Globe className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold text-white block">Universo Auditado: 597 Ativos Monitorados</span>
+                    <span className="text-[10px] text-slate-400 block">
+                      504 do S&P 500, 54 Blue Chips da B3, 35 Fundos Imobiliários (FIIs) e 30 REITs Americanos
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap font-mono text-[9px]">
+                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">54 B3</span>
+                  <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold">504 S&P 500</span>
+                  <span className="px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold">35 FIIs</span>
+                  <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">30 REITs</span>
+                </div>
+              </div>
+
               {/* Placar de Diagnósticos em Tempo Real */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono">
                 <div className="bg-[#0f172a] text-white p-2.5 rounded-lg border border-slate-800">
@@ -2270,9 +2429,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
 
                 <div className="bg-[#0f172a] text-white p-2.5 rounded-lg border border-slate-800">
                   <span className="text-[9px] text-slate-400 block uppercase font-medium">Varredura Geral 19h</span>
-                  <strong className="text-sm sm:text-base font-bold text-amber-400 block mt-0.5">
-                    {countdownStr}
-                  </strong>
+                  <CountdownDisplay nextScanTime={scanStatus?.nextScanTime} className="text-sm sm:text-base font-bold text-amber-400 block mt-0.5" />
                   <span className="text-[9px] text-slate-400">Pós-fechamento diário</span>
                 </div>
               </div>
