@@ -36,6 +36,7 @@ app.use(express.json());
 
 // Gerenciamento de Chaves de API (Primária Gratuita + Backup com Failover Automático)
 function getGenAIClients(customKey?: string) {
+  if (IS_FROZEN) return [];
   const keyList: { name: string; key: string }[] = [];
 
   // 1. Chave customizada fornecida pelo usuário no navegador (se houver)
@@ -734,6 +735,11 @@ app.get('/api/live-quotes', async (req, res) => {
 // Endpoint: Busca de Fundamentos Reais com Cotação ao Vivo e IA
 app.post('/api/gemini/search-financials', async (req, res) => {
   try {
+    if (IS_FROZEN) {
+      const q = String(req.body?.query || '').trim().toUpperCase();
+      const found = OPORTUNIDADES_SETUP.find(op => op.ticker.toUpperCase() === q || op.nome.toUpperCase().includes(q)) || OPORTUNIDADES_SETUP[0];
+      return res.json({ ...found, origem: 'PWA Congelado (Cache Local Zero Custo)' });
+    }
     const { query } = req.body;
     if (!query || typeof query !== 'string') {
       return res.status(400).json({ error: 'Termo de busca não fornecido' });
@@ -1173,6 +1179,10 @@ Respondendo à sua pergunta sobre: *"${message}"*:
 app.post('/api/gemini/chat', async (req, res) => {
   try {
     const { message, ativoContexto, historico, customApiKey } = req.body;
+    if (IS_FROZEN) {
+      const fb = generateInstitutionalFallback(message, ativoContexto, []);
+      return res.json({ reply: fb.reply, usedSource: 'PWA Congelado (Motor Local Zero Custo)' });
+    }
     const clientKeyHeader = req.headers['x-gemini-key'] as string;
     const keyToUse = customApiKey || clientKeyHeader;
 
