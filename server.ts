@@ -3,6 +3,26 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
+import { OPORTUNIDADES_SETUP, type Oportunidade } from './src/data/oportunidades.ts';
+import {
+  GLOBAL_UNIVERSE,
+  UNIVERSE_B3_TOP50,
+  UNIVERSE_FIIS_BR,
+  UNIVERSE_REITS_US,
+  UNIVERSE_SP500,
+  findInUniverse,
+  searchUniverse,
+  getUniverseStats,
+  type UniverseAsset,
+} from './src/data/universe.ts';
+
+export { OPORTUNIDADES_SETUP };
+
+// =========================================================================
+// MODO CONGELADO / STANDBY (PWA CONGELADO PELO USUÁRIO)
+// Interrompe qualquer busca diária, varredura das 19:00 BRT ou polling background.
+// =========================================================================
+export const IS_FROZEN = true;
 
 dotenv.config();
 
@@ -110,6 +130,42 @@ export async function getLiveQuoteDetails(ticker: string, mercado?: 'B3' | 'US')
   // Normalização de migração de tickers (ex: Copel unificada de CPLE6 para CPLE3)
   if (cleanTicker === 'CPLE6') cleanTicker = 'CPLE3';
 
+  // 0. Modo Congelado: Retorna dados calibrados locais sem disparar chamadas externas
+  if (IS_FROZEN) {
+    const cached = quoteCache.get(cleanTicker);
+    if (cached) return cached.quote;
+
+    const opFound = OPORTUNIDADES_SETUP.find((o) => o.ticker.toUpperCase() === cleanTicker);
+    if (opFound) {
+      const frozenQuote: LiveQuoteDetails = {
+        ticker: cleanTicker,
+        price: opFound.preco,
+        change: 0,
+        changePercent: 0,
+        currency: opFound.moeda,
+        updatedAt: 'Congelado',
+        source: 'Snapshot Congelado',
+      };
+      quoteCache.set(cleanTicker, { quote: frozenQuote, timestamp: Date.now() });
+      return frozenQuote;
+    }
+
+    const fb = FALLBACK_PRICES[cleanTicker];
+    if (fb) {
+      const frozenQuote: LiveQuoteDetails = {
+        ticker: cleanTicker,
+        price: fb.price,
+        change: 0,
+        changePercent: 0,
+        currency: fb.currency,
+        updatedAt: 'Congelado',
+        source: 'Referência Congelada',
+      };
+      quoteCache.set(cleanTicker, { quote: frozenQuote, timestamp: Date.now() });
+      return frozenQuote;
+    }
+  }
+
   const isB3 = mercado === 'B3' || /^[A-Z]{4}(3|4|5|6|11|12)$/.test(cleanTicker) || cleanTicker.endsWith('.SA');
   const cacheKey = cleanTicker;
   const cached = quoteCache.get(cacheKey);
@@ -216,22 +272,6 @@ async function getLivePrice(ticker: string, mercado: 'B3' | 'US'): Promise<numbe
   return details ? details.price : null;
 }
 
-// Banco de dados e universo de ativos (S&P 500, Top 50 B3, FIIs Brasileiros e REITs Americanos)
-import { OPORTUNIDADES_SETUP, type Oportunidade } from './src/data/oportunidades.ts';
-import {
-  GLOBAL_UNIVERSE,
-  UNIVERSE_B3_TOP50,
-  UNIVERSE_FIIS_BR,
-  UNIVERSE_REITS_US,
-  UNIVERSE_SP500,
-  findInUniverse,
-  searchUniverse,
-  getUniverseStats,
-  type UniverseAsset,
-} from './src/data/universe.ts';
-
-export { OPORTUNIDADES_SETUP };
-
 async function generateContentWithRetry(params: {
   contents: string;
   systemInstruction?: string;
@@ -312,6 +352,10 @@ function formatBrtDate(epochMs: number): string {
 }
 
 async function runDailyUniverseScan(isManual = false): Promise<any> {
+  if (IS_FROZEN) {
+    console.log('[Universe Scanner] PWA CONGELADO: Execução de varredura diária cancelada.');
+    return { status: 'frozen', message: 'PWA congelado. Operações de varredura desativadas.' };
+  }
   if (isDailyScanning) return { status: 'already_running' };
   isDailyScanning = true;
   console.log(`[Universe Scanner] Iniciando varredura geral diária (${isManual ? 'MANUAL' : 'AGENDADA 19:00 BRT'})...`);
@@ -364,13 +408,22 @@ async function runDailyUniverseScan(isManual = false): Promise<any> {
     lastScanSummary = `Erro na varredura: ${err?.message || 'Falha ao processar provedores externos'}`;
   } finally {
     isDailyScanning = false;
-    scheduleDailyScanTimer();
+    if (!IS_FROZEN) {
+      scheduleDailyScanTimer();
+    }
   }
 }
 
 let scanTimerHandle: NodeJS.Timeout | null = null;
 function scheduleDailyScanTimer() {
-  if (scanTimerHandle) clearTimeout(scanTimerHandle);
+  if (scanTimerHandle) {
+    clearTimeout(scanTimerHandle);
+    scanTimerHandle = null;
+  }
+  if (IS_FROZEN) {
+    console.log('[Universe Scanner] PWA CONGELADO: Agendador de varredura diária das 19:00 BRT e buscas automáticas desativados.');
+    return;
+  }
   const nextTarget = calculateNextScanTarget();
   const msRemaining = Math.max(1000, nextTarget.getTime() - Date.now());
   console.log(`[Universe Scanner] Próxima varredura diária das 19:00 BRT agendada para: ${formatBrtDate(nextTarget.getTime())} (em ${Math.round(msRemaining / 1000 / 60)} minutos).`);
@@ -380,12 +433,13 @@ function scheduleDailyScanTimer() {
   }, msRemaining);
 }
 
-// Inicia o agendador no carregamento do servidor (apenas se não estiver na Vercel)
-if (!process.env.VERCEL) {
+// Inicia o agendador no carregamento do servidor (apenas se não estiver na Vercel e não estiver congelado)
+if (!process.env.VERCEL && !IS_FROZEN) {
   scheduleDailyScanTimer();
 }
 
 async function refreshOpportunitiesCache() {
+  if (IS_FROZEN) return;
   if (isRefreshingCache) return;
   isRefreshingCache = true;
   try {
@@ -424,29 +478,32 @@ async function refreshOpportunitiesCache() {
   }
 }
 
-// Endpoint: Retorna Oportunidades com cotações reais atualizadas em tempo real
+// Endpoint: Retorna Oportunidades com cotações reais (Modo Congelado: cache fixo sem chamadas externas)
 app.get('/api/opportunities', async (_req, res) => {
-  const now = Date.now();
-  if (now - lastOpportunitiesFetchTime > OPPORTUNITIES_CACHE_TTL) {
-    // Dispara atualização em background se expirado
-    refreshOpportunitiesCache();
+  if (!IS_FROZEN) {
+    const now = Date.now();
+    if (now - lastOpportunitiesFetchTime > OPPORTUNITIES_CACHE_TTL) {
+      refreshOpportunitiesCache();
+    }
   }
   res.json(cachedOpportunities);
 });
 
-// Endpoint: Status da Varredura Diária Programada (19:00 BRT) e Relógio Regressivo
+// Endpoint: Status da Varredura Diária Programada e Relógio Regressivo (Informa se está Congelado)
 app.get('/api/scan-status', (_req, res) => {
   const nextTarget = calculateNextScanTarget();
   const now = Date.now();
   const secondsRemaining = Math.max(0, Math.floor((nextTarget.getTime() - now) / 1000));
 
   res.json({
+    isFrozen: IS_FROZEN,
+    status: IS_FROZEN ? 'CONGELADO' : 'ATIVO',
     lastScanTime: lastScanTimestamp,
     lastScanFormatted: formatBrtDate(lastScanTimestamp),
-    nextScanTime: nextTarget.getTime(),
-    nextScanFormatted: formatBrtDate(nextTarget.getTime()),
-    secondsUntilNextScan: secondsRemaining,
-    isScanning: isDailyScanning,
+    nextScanTime: IS_FROZEN ? null : nextTarget.getTime(),
+    nextScanFormatted: IS_FROZEN ? 'Congelado / Desativado' : formatBrtDate(nextTarget.getTime()),
+    secondsUntilNextScan: IS_FROZEN ? 0 : secondsRemaining,
+    isScanning: false,
     totalMonitored: cachedOpportunities.length,
     totalInBuyZone: cachedOpportunities.filter((op) => {
       if (op.lpa > 0 && op.vpa > 0) {
@@ -457,9 +514,15 @@ app.get('/api/scan-status', (_req, res) => {
       return false;
     }).length,
     universeStats: getUniverseStats(),
-    scanSchedulePolicy: 'Diariamente às 19:00 (Horário de Brasília) - Pós-Fechamento B3 e Wall Street',
-    refreshButtonRole: 'Os botões de refresh são dedicados à cotação instantânea de tela ao vivo durante o pregão.',
-    executionSummary: lastScanSummary,
+    scanSchedulePolicy: IS_FROZEN
+      ? 'PWA Congelado • Varreduras diárias das 19:00 BRT e buscas automáticas desativadas'
+      : 'Diariamente às 19:00 (Horário de Brasília) - Pós-Fechamento B3 e Wall Street',
+    refreshButtonRole: IS_FROZEN
+      ? 'PWA Congelado: Operações e buscas diárias desativadas.'
+      : 'Os botões de refresh são dedicados à cotação instantânea de tela ao vivo durante o pregão.',
+    executionSummary: IS_FROZEN
+      ? 'PWA congelado pelo investidor. Varreduras noturnas diárias e rotinas de busca em segundo plano foram interrompidas.'
+      : lastScanSummary,
   });
 });
 
@@ -478,6 +541,14 @@ app.get('/api/universe-search', (req, res) => {
 
 // Endpoint: Disparo manual de varredura geral imediata sob demanda
 app.post('/api/scan-now', async (_req, res) => {
+  if (IS_FROZEN) {
+    return res.json({
+      success: false,
+      isFrozen: true,
+      message: 'O PWA está congelado. Varreduras e buscas diárias foram interrompidas.',
+      opportunities: cachedOpportunities,
+    });
+  }
   await runDailyUniverseScan(true);
   const nextTarget = calculateNextScanTarget();
   res.json({
@@ -492,6 +563,58 @@ app.post('/api/scan-now', async (_req, res) => {
 
 // Endpoint: Auditoria Diagnóstica em Tempo Real com Métricas e Teste de Conexão
 app.get('/api/audit-diagnostics', async (_req, res) => {
+  if (IS_FROZEN) {
+    const report = OPORTUNIDADES_SETUP.map((op) => {
+      const livePrice = op.preco;
+      const isValidGraham = op.lpa > 0 && op.vpa > 0;
+      const numGraham = isValidGraham ? Math.sqrt(22.5 * op.lpa * op.vpa) : 0;
+      const grahamCresc = (op.lpa > 0 && op.yieldAAA > 0) ? (op.lpa * (8.5 + 2 * op.g) * 4.4) / op.yieldAAA : 0;
+      const fairPrice = (isValidGraham && grahamCresc > 0) ? (numGraham + grahamCresc) / 2 : numGraham;
+      const tetoCompra = fairPrice * (1 - (op.margemSugerida || 25) / 100);
+      const inBuyZone = livePrice <= tetoCompra;
+      const margemVsTeto = tetoCompra > 0 ? ((tetoCompra - livePrice) / tetoCompra) * 100 : 0;
+
+      return {
+        ticker: op.ticker,
+        nome: op.nome,
+        mercado: op.mercado,
+        moeda: op.moeda,
+        precoBase: op.preco,
+        precoAoVivo: Number(livePrice.toFixed(2)),
+        variacaoVsBase: 0,
+        variacaoDia: 0,
+        provedor: 'Congelado (Cache Estático)',
+        isLive: false,
+        latencyMs: 0,
+        horarioCotacao: 'Congelado',
+        precoJustoGraham: Number(fairPrice.toFixed(2)),
+        tetoCompra: Number(tetoCompra.toFixed(2)),
+        status: inBuyZone ? 'ZONA DE COMPRA' : 'ACOMPANHAMENTO',
+        margemVsTeto: Number(margemVsTeto.toFixed(1)),
+      };
+    });
+
+    const totalMonitored = report.length;
+    const inBuyZoneCount = report.filter((r) => r.status === 'ZONA DE COMPRA').length;
+
+    return res.json({
+      auditedAt: new Date().toISOString(),
+      auditedAtFormatted: formatBrtDate(Date.now()),
+      totalExecutionTimeMs: 1,
+      avgLatencyMs: 0,
+      totalMonitored,
+      totalLiveFeeds: 0,
+      liveCoveragePercent: 0,
+      totalInBuyZone: inBuyZoneCount,
+      totalInMonitoring: totalMonitored - inBuyZoneCount,
+      systemHealth: 'CONGELADO (OPERAÇÕES EM PAUSA)',
+      nextScheduledScanFormatted: 'Congelado / Desativado',
+      universeStats: getUniverseStats(),
+      items: report,
+      isFrozen: true,
+      statusMessage: 'PWA Congelado: Requisições de rede externas e buscas diárias desativadas.',
+    });
+  }
   const startTime = Date.now();
   const report = await Promise.all(
     OPORTUNIDADES_SETUP.map(async (op) => {

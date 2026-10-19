@@ -31,6 +31,7 @@ import {
   PanelRight,
   GripVertical,
   ChevronLeft,
+  Snowflake,
 } from 'lucide-react';
 import { TrackedOpportunity } from './types/tracker';
 import {
@@ -203,22 +204,27 @@ const FormattedMessage = React.memo(function FormattedMessage({ text }: { text: 
   return <div className="space-y-0.5 text-xs text-slate-800">{elements}</div>;
 });
 
-// Componente Isolado de Contagem Regressiva (Elimina re-renderizações a cada segundo no workspace raiz)
+// Componente Isolado de Contagem Regressiva e Status Congelado
 const CountdownDisplay = React.memo(function CountdownDisplay({
   nextScanTime,
+  isFrozen = true,
   onExpired,
-  className = 'font-bold text-emerald-400',
+  className = 'font-bold text-sky-400',
   prefix,
 }: {
-  nextScanTime?: number;
+  nextScanTime?: number | null;
+  isFrozen?: boolean;
   onExpired?: () => void;
   className?: string;
   prefix?: React.ReactNode;
 }) {
-  const [str, setStr] = useState<string>('--:--:--');
+  const [str, setStr] = useState<string>('CONGELADO');
 
   useEffect(() => {
-    if (!nextScanTime) return;
+    if (isFrozen || !nextScanTime) {
+      setStr('CONGELADO');
+      return;
+    }
 
     const calc = () => {
       const diffSec = Math.max(0, Math.floor((nextScanTime - Date.now()) / 1000));
@@ -237,7 +243,7 @@ const CountdownDisplay = React.memo(function CountdownDisplay({
     calc();
     const interval = setInterval(calc, 1000);
     return () => clearInterval(interval);
-  }, [nextScanTime, onExpired]);
+  }, [nextScanTime, isFrozen, onExpired]);
 
   return (
     <span className={className}>
@@ -394,11 +400,13 @@ export default function GrahamBuyZoneWorkspace() {
     };
   }, [redimensionando]);
 
-  // Varredura Diária Programada (19:00 Horário de Brasília) & Contagem Regressiva
+  // Varredura Diária Programada & Contagem Regressiva (Suporte a Modo Congelado)
   const [scanStatus, setScanStatus] = useState<{
+    isFrozen?: boolean;
+    status?: string;
     lastScanTime: number;
     lastScanFormatted: string;
-    nextScanTime: number;
+    nextScanTime: number | null;
     nextScanFormatted: string;
     secondsUntilNextScan: number;
     isScanning: boolean;
@@ -556,9 +564,13 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
     }
   };
 
-  // Disparo manual imediato de varredura geral
+  // Disparo manual de varredura geral (Bloqueado no modo congelado)
   const dispararVarreduraManual = async () => {
-    if (executandoScanManual) return;
+    if (executandoScanManual || scanStatus?.isFrozen) {
+      setFeedbackScan('Operações congeladas: varreduras automáticas e buscas diárias estão desativadas.');
+      setTimeout(() => setFeedbackScan(null), 4000);
+      return;
+    }
     setExecutandoScanManual(true);
     setFeedbackScan('Executando varredura geral do universo...');
     try {
@@ -591,16 +603,11 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
   };
 
   useEffect(() => {
+    // Carrega o snapshot inicial congelado uma única vez ao iniciar
     fetchOportunidades();
     fetchScanStatus();
 
-    // Polling automático em segundo plano a cada 60 segundos
-    const pollInterval = setInterval(() => {
-      fetchOportunidades();
-      fetchScanStatus();
-    }, 60000);
-
-    return () => clearInterval(pollInterval);
+    // MODO CONGELADO: Sem polling cíclico nem temporizadores de busca em segundo plano
   }, []);
 
   // O relógio regressivo agora é processado exclusivamente pelo componente isolado <CountdownDisplay />
@@ -1047,18 +1054,17 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             )}
           </button>
 
-          {/* Botão de Auditoria do Sistema */}
+          {/* Botão de Auditoria / Status do Sistema */}
           <button
             onClick={abrirAuditoria}
-            className="flex items-center gap-1 sm:gap-1.5 text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 sm:px-2.5 py-1 rounded-md border border-emerald-300 hover:border-emerald-400 transition-colors cursor-pointer shadow-2xs active:scale-95"
-            title="Abrir painel de auditoria técnica do sistema e testar cotações ao vivo"
+            className="flex items-center gap-1 sm:gap-1.5 text-[11px] font-mono font-bold text-sky-900 bg-sky-50 hover:bg-sky-100 px-2 sm:px-2.5 py-1 rounded-md border border-sky-300 hover:border-sky-400 transition-colors cursor-pointer shadow-2xs active:scale-95"
+            title="PWA Congelado • Operações e buscas diárias desativadas"
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="hidden lg:inline">Auditoria:</span>
+            <Snowflake className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+            <span className="hidden lg:inline">Status:</span>
             <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="hidden sm:inline">100% Online</span>
-              <span className="sm:hidden text-[10px] font-bold text-emerald-700">Online</span>
+              <span className="hidden sm:inline">PWA Congelado</span>
+              <span className="sm:hidden text-[10px] font-bold text-sky-800">Congelado</span>
             </span>
           </button>
 
@@ -1327,11 +1333,11 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
 
                 <button
                   onClick={() => setModalScanInfoAberto(true)}
-                  className="flex items-center gap-1 bg-[#0f172a] text-white px-1.5 py-0.5 rounded font-mono border border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs ml-auto"
-                  title="Próxima varredura geral diária às 19:00 BRT"
+                  className="flex items-center gap-1 bg-[#0f172a] text-white px-1.5 py-0.5 rounded font-mono border border-sky-800/60 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs ml-auto"
+                  title="PWA Congelado • Varreduras e buscas diárias desativadas"
                 >
-                  <Clock className="w-2.5 h-2.5 text-emerald-400 animate-pulse shrink-0" />
-                  <CountdownDisplay nextScanTime={scanStatus?.nextScanTime} onExpired={() => { fetchScanStatus(); fetchOportunidades(); }} />
+                  <Snowflake className="w-2.5 h-2.5 text-sky-400 shrink-0" />
+                  <CountdownDisplay isFrozen={scanStatus?.isFrozen ?? true} nextScanTime={scanStatus?.nextScanTime} className="font-bold text-sky-300 text-[10px]" />
                 </button>
               </div>
             </div>
@@ -2361,13 +2367,14 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 <div>
                   <h3 className="font-bold text-xs uppercase tracking-wider text-slate-100 flex items-center gap-2">
-                    <span>Auditoria Técnica do Sistema &amp; Feeds em Tempo Real</span>
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40">
-                      100% Online
+                    <span>Auditoria Técnica do Sistema &amp; Feeds</span>
+                    <span className="text-[10px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full border border-sky-500/40 font-bold flex items-center gap-1">
+                      <Snowflake className="w-3 h-3 text-sky-400" />
+                      PWA Congelado
                     </span>
                   </h3>
                   <span className="text-[10px] text-slate-400 block">
-                    Conexão direta aos pregões B3 (Brapi/Yahoo) e Wall Street (NYSE/Nasdaq)
+                    Modo estático seguro: varreduras diárias das 19h e buscas de mercado em segundo plano desativadas
                   </span>
                 </div>
               </div>
@@ -2382,6 +2389,21 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             {/* Conteúdo do Modal */}
             <div className="p-4 space-y-4 overflow-y-auto text-xs text-slate-800 flex-1">
               
+              {/* Banner Informativo de PWA Congelado */}
+              <div className="bg-sky-50 border border-sky-300 rounded-lg p-3 text-xs text-sky-950 flex items-start gap-2.5 shadow-2xs">
+                <Snowflake className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <strong className="font-bold text-sky-950 text-xs">PWA Congelado — Operações Automáticas Desativadas</strong>
+                    <span className="text-[9px] bg-sky-200 text-sky-900 px-1.5 py-0.2 rounded font-bold uppercase">Standby Ativo</span>
+                  </div>
+                  <span className="text-[11px] text-sky-800 block mt-0.5 leading-snug">
+                    A rotina diária de varredura geral (19:00 BRT) e o polling de mercado em segundo plano foram interrompidos com sucesso.
+                    O terminal opera em modo de consulta estática segura, sem realizar chamadas externas contínuas ou consumir dados da sua rede.
+                  </span>
+                </div>
+              </div>
+
               {/* Resumo do Universo Completo Monitorado */}
               <div className="bg-[#0b1329] text-white p-3 rounded-lg border border-slate-750 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs">
                 <div className="flex items-center gap-2.5">
@@ -2404,19 +2426,19 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
               {/* Placar de Diagnósticos em Tempo Real */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono">
                 <div className="bg-[#0f172a] text-white p-2.5 rounded-lg border border-slate-800">
-                  <span className="text-[9px] text-slate-400 block uppercase font-medium">Cobertura de Feeds</span>
-                  <strong className="text-sm sm:text-base font-bold text-emerald-400 block mt-0.5">
-                    {auditDiagnostics ? `${auditDiagnostics.liveCoveragePercent}% (${auditDiagnostics.totalLiveFeeds}/${auditDiagnostics.totalMonitored})` : '20 de 20 (100%)'}
+                  <span className="text-[9px] text-slate-400 block uppercase font-medium">Estado dos Feeds</span>
+                  <strong className="text-sm sm:text-base font-bold text-sky-400 block mt-0.5">
+                    ESTÁTICO
                   </strong>
-                  <span className="text-[9px] text-slate-400">Tempo Real Ativo</span>
+                  <span className="text-[9px] text-slate-400">Snapshot preservado</span>
                 </div>
 
                 <div className="bg-[#0f172a] text-white p-2.5 rounded-lg border border-slate-800">
-                  <span className="text-[9px] text-slate-400 block uppercase font-medium">Latência Média</span>
-                  <strong className="text-sm sm:text-base font-bold text-blue-400 block mt-0.5">
-                    {auditDiagnostics ? `${auditDiagnostics.avgLatencyMs} ms` : '~180 ms'}
+                  <span className="text-[9px] text-slate-400 block uppercase font-medium">Latência de Rede</span>
+                  <strong className="text-sm sm:text-base font-bold text-emerald-400 block mt-0.5">
+                    0 ms (Offline)
                   </strong>
-                  <span className="text-[9px] text-slate-400">Resposta ultrarrápida</span>
+                  <span className="text-[9px] text-slate-400">Sem chamadas externas</span>
                 </div>
 
                 <div className="bg-[#0f172a] text-white p-2.5 rounded-lg border border-slate-800">
@@ -2428,28 +2450,28 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                 </div>
 
                 <div className="bg-[#0f172a] text-white p-2.5 rounded-lg border border-slate-800">
-                  <span className="text-[9px] text-slate-400 block uppercase font-medium">Varredura Geral 19h</span>
-                  <CountdownDisplay nextScanTime={scanStatus?.nextScanTime} className="text-sm sm:text-base font-bold text-amber-400 block mt-0.5" />
-                  <span className="text-[9px] text-slate-400">Pós-fechamento diário</span>
+                  <span className="text-[9px] text-slate-400 block uppercase font-medium">Varredura Diária</span>
+                  <CountdownDisplay isFrozen={scanStatus?.isFrozen ?? true} nextScanTime={scanStatus?.nextScanTime} className="text-sm sm:text-base font-bold text-sky-400 block mt-0.5" />
+                  <span className="text-[9px] text-slate-400">Buscas diárias desativadas</span>
                 </div>
               </div>
 
               {/* Botão de Disparo da Auditoria ao Vivo */}
               <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-300">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="w-2 h-2 rounded-full bg-sky-500"></span>
                   <span className="text-xs font-bold text-slate-800">
-                    Última Sincronização Local: <span className="font-mono text-blue-700">{ultimaAtualizacaoEm}</span>
+                    Última Sincronização: <span className="font-mono text-blue-700">{ultimaAtualizacaoEm}</span>
                   </span>
                 </div>
 
                 <button
                   onClick={rodarAuditoriaAoVivo}
                   disabled={executandoAuditoria}
-                  className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-[11px] rounded-md transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                  className="px-3 py-1 bg-sky-700 hover:bg-sky-800 disabled:opacity-50 text-white font-bold text-[11px] rounded-md transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
                 >
                   <RefreshCw className={`w-3 h-3 ${executandoAuditoria ? 'animate-spin' : ''}`} />
-                  <span>{executandoAuditoria ? 'Testando Conexões...' : 'Testar Conexões & Cotações Agora'}</span>
+                  <span>{executandoAuditoria ? 'Verificando...' : 'Verificar Snapshot Congelado'}</span>
                 </button>
               </div>
 
@@ -2458,10 +2480,11 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                 <div className="bg-slate-100 px-3 py-2 border-b border-slate-300 flex items-center justify-between">
                   <h4 className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
                     <Activity className="w-3.5 h-3.5 text-blue-700" />
-                    <span>Conferência de Tela: Preço Base vs Cotação de Mercado em Tempo Real</span>
+                    <span>Conferência de Tela: Snapshot Calibrado e Fundamentos Graham</span>
                   </h4>
-                  <span className="text-[10px] text-slate-500 font-medium">
-                    Auto-refresh em segundo plano ativo (a cada 60s)
+                  <span className="text-[10px] text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200 flex items-center gap-1">
+                    <Snowflake className="w-3 h-3 text-sky-500" />
+                    PWA Congelado (Sem auto-refresh)
                   </span>
                 </div>
 
@@ -2566,12 +2589,12 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             {/* Rodapé com Ações */}
             <div className="p-3 bg-slate-50 border-t border-slate-300 flex items-center justify-between shrink-0">
               <button
-                onClick={dispararVarreduraManual}
-                disabled={executandoScanManual}
-                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors flex items-center gap-1.5"
+                disabled
+                className="px-3 py-1.5 bg-slate-800 text-slate-400 font-bold text-xs rounded-lg cursor-not-allowed flex items-center gap-1.5 border border-slate-700"
+                title="PWA Congelado: Varreduras automáticas e buscas diárias foram interrompidas."
               >
-                <Zap className={`w-3.5 h-3.5 text-emerald-400 ${executandoScanManual ? 'animate-spin' : ''}`} />
-                <span>{executandoScanManual ? 'Executando Varredura...' : 'Executar Varredura Geral Noturna Agora'}</span>
+                <Snowflake className="w-3.5 h-3.5 text-sky-400" />
+                <span>Varreduras e Buscas Congeladas</span>
               </button>
 
               <button
