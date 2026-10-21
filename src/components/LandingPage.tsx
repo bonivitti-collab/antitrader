@@ -25,6 +25,9 @@ import {
   BrainCircuit,
   Lock,
   ArrowUpRight,
+  FileSearch,
+  Scale,
+  Percent,
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -37,8 +40,12 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
 
   const faqs = [
     {
-      q: 'Como funciona o AntiTrader AI na prática?',
-      a: 'O AntiTrader AI é o seu copiloto de inteligência financeira. Em vez de você perder horas lendo PDFs de 120 páginas da CVM ou SEC, você simplesmente pergunta: "A empresa X está barata mesmo ou tem armadilha contábil?". A IA audita o balanço, calcula o Preço Justo de Graham, analisa o impacto da Selic/juros e entrega um veredito tático com pontos de entrada, alvo e stop em segundos.',
+      q: 'Como saber se uma ação está barata ou cara na bolsa de valores?',
+      a: 'O AntiTrader calcula o Preço Justo intrínseco utilizando a fórmula clássica de Benjamin Graham (raiz de 22,5 × LPA × VPA) cruzada com a fórmula de crescimento ajustada pelas taxas de juros (1974). Uma ação só é classificada na Zona de Compra quando negocia com desconto real de 20% a 50% em relação ao seu valor patrimonial e capacidade de gerar lucros consistentes.',
+    },
+    {
+      q: 'Como o AntiTrader AI ajuda a evitar armadilhas de valor (value traps)?',
+      a: 'O AntiTrader AI é o seu copiloto de inteligência financeira. Em vez de você perder horas lendo PDFs de 120 páginas da CVM ou SEC, você simplesmente pergunta: "A empresa X está barata mesmo ou tem pegadinha contábil?". A IA audita o balanço, separa lucros pontuais de operacionais recorrentes, analisa a dívida líquida/EBITDA e entrega um veredito tático com pontos de entrada, alvo e stop em segundos.',
     },
     {
       q: 'Como funcionam os 7 dias de teste grátis?',
@@ -49,12 +56,12 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
       a: 'Não. O AntiTrader foi desenhado exatamente para quem não quer perder tempo com planilhas complexas ou jargões de corretora. A ferramenta já entrega tudo mastigado: se o papel está na Zona de Compra, qual o Preço Justo matemático e quando realizar o lucro (TP1 e TP2).',
     },
     {
-      q: 'Quais mercados e ativos estão cobertos?',
+      q: 'Quais ações, FIIs e mercados estão cobertos na plataforma?',
       a: 'Monitoramos diariamente mais de 160 ativos com fundamentos sólidos: as principais ações da B3 (Brasil), Fundos Imobiliários (FIIs) e os constituintes de valor do S&P 500 (Estados Unidos), com varredura automática às 19h.',
     },
     {
-      q: 'Como é calculada a margem de segurança e o Preço Justo?',
-      a: 'Utilizamos a fórmula clássica de Benjamin Graham (raiz de 22,5 × LPA × VPA) cruzada com a fórmula de crescimento ajustada pelas taxas de juros (1974), aplicando o menor entre os dois como teto conservador.',
+      q: 'Qual a diferença do AntiTrader para sites como Status Invest, Fundamentus ou Oceans14?',
+      a: 'Sites tradicionais são agregadores de dados brutos: mostram dezenas de tabelas e deixam toda a interpretação nas suas costas. O AntiTrader vai direto ao ponto: audita se os números são verdadeiros, calcula o Preço Justo matemático, coloca na esteira de metas (TP1 e TP2) e oferece uma Inteligência Artificial conversacional que responde qualquer dúvida sobre o negócio.',
     },
     {
       q: 'Funciona no celular como aplicativo?',
@@ -84,10 +91,10 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
             <Sparkles className="w-3.5 h-3.5 text-blue-400" />
             <span>IA Especialista</span>
           </a>
+          <a href="#dores-mercado" className="hover:text-white transition-colors">Dúvidas Frequentes</a>
           <a href="#metodo" className="hover:text-white transition-colors">O Método Graham</a>
-          <a href="#recursos" className="hover:text-white transition-colors">Recursos</a>
           <a href="#precos" className="hover:text-white transition-colors">Planos &amp; Preços</a>
-          <a href="#faq" className="hover:text-white transition-colors">Dúvidas</a>
+          <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
         </nav>
 
         <div className="flex items-center gap-2.5">
@@ -123,7 +130,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
           <span>VALUATION QUANTITATIVO + IA ANALISTA INSTITUCIONAL</span>
         </div>
 
-        {/* Headline Principal */}
+        {/* Headline Principal Otimizada para Intenção de Busca */}
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-tight max-w-4xl mx-auto">
           Pare de caçar ações no escuro. <br />
           <span className="bg-gradient-to-r from-blue-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">
@@ -131,9 +138,9 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
           </span>
         </h1>
 
-        {/* Subheadline */}
+        {/* Subheadline com Palavras-chave Naturais */}
         <p className="mt-5 text-sm sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          O <strong>AntiTrader</strong> une a matemática conservadora de Benjamin Graham com um <strong>Copilot de Inteligência Artificial</strong>. Ele audita balanços da CVM e SEC, detecta pegadinhas contábeis, cruza o macro em tempo real e entrega a <strong>Zona de Compra exata</strong> com alvos <strong>TP1</strong>, <strong>TP2</strong> e <strong>Stop de Invalidação</strong>.
+          O <strong>AntiTrader</strong> une a matemática conservadora de Benjamin Graham com um <strong>Copilot de Inteligência Artificial Fundamentalista</strong>. Ele audita balanços da CVM e SEC, detecta pegadinhas contábeis, cruza o macro em tempo real e entrega a <strong>Zona de Compra exata</strong> com alvos <strong>TP1</strong>, <strong>TP2</strong> e <strong>Stop de Invalidação</strong>.
         </p>
 
         {/* CTAs do Hero */}
@@ -167,7 +174,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            Cancele com 1 clique
+            Cancele com 1 clique no painel
           </span>
         </div>
 
@@ -403,6 +410,66 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
 
           </div>
 
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* SEÇÃO: AS 3 GRANDES DORES QUE O INVESTIDOR BUSCA NO GOOGLE */}
+      {/* ======================================================== */}
+      <section id="dores-mercado" className="py-16 sm:py-20 bg-[#060a13] border-b border-slate-800/80 px-4 sm:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest">
+              Inteligência de Mercado &amp; Margem de Segurança
+            </span>
+            <h2 className="mt-2 text-2xl sm:text-4xl font-extrabold text-white">
+              As 3 dúvidas que todo investidor pesquisa no Google antes de comprar:
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-400">
+              O AntiTrader foi construído exatamente para responder essas três perguntas com dados matemáticos e sem achismo.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Dor 1 */}
+            <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 space-y-3 relative hover:border-blue-500/50 transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center text-sm font-bold font-mono">
+                01
+              </div>
+              <h3 className="text-base font-bold text-white">
+                "Como saber se a ação está barata mesmo ou se é uma pegadinha?"
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Muitas ações parecem baratas com P/L baixo, mas escondem dívidas impagáveis ou lucros não-recorrentes. A nossa IA audita o balanço da CVM e aplica o teste de 5 anos de lucros e solidez de caixa de Graham.
+              </p>
+            </div>
+
+            {/* Dor 2 */}
+            <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 space-y-3 relative hover:border-teal-500/50 transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-teal-600/20 text-teal-400 flex items-center justify-center text-sm font-bold font-mono">
+                02
+              </div>
+              <h3 className="text-base font-bold text-white">
+                "Qual é o preço máximo que devo pagar (Preço Teto / Preço Justo)?"
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Você nunca mais compra na euforia no topo. O AntiTrader calcula a Zona de Entrada Ideal (com 20% a 33% de desconto sobre o Preço Justo conservador) para você entrar com margem de segurança garantida.
+              </p>
+            </div>
+
+            {/* Dor 3 */}
+            <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 space-y-3 relative hover:border-emerald-500/50 transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-sm font-bold font-mono">
+                03
+              </div>
+              <h3 className="text-base font-bold text-white">
+                "Quando devo vender ou colocar o lucro no bolso?"
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Chega de dúvida se realiza ou se segura para sempre. A Esteira de Metas traça 2 alvos claros: o TP1 (quando atinge o Preço Justo) e o TP2 (alvo estendido de valorização), além de um stop protetor automático.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -689,7 +756,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
       </section>
 
       {/* ======================================================== */}
-      {/* SEÇÃO: FAQ (DÚVIDAS FREQUENTES)                          */}
+      {/* SEÇÃO: FAQ (DÚVIDAS FREQUENTES OTIMIZADA PARA O GOOGLE)   */}
       {/* ======================================================== */}
       <section id="faq" className="py-16 sm:py-20 px-4 sm:px-8 max-w-3xl mx-auto">
         <div className="text-center mb-10">
