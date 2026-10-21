@@ -400,34 +400,50 @@ export default function GrahamBuyZoneWorkspace() {
   const [copiado, setCopiado] = useState(false);
 
   // Chat com o Agente (Especialista em Valuation & Inteligência Fundamentalista Aberta)
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: 'msg-1',
-      sender: 'agent',
-      timestamp: '14:35',
-      steps: [
-        { label: 'Auditoria de Demonstrações Contábeis & Balanços (CVM/SEC)', type: 'explore' },
-        { label: 'Cotação em Tempo Real B3 / NYSE Integrada', type: 'audit' },
-        { label: 'Múltiplos e Margem de Segurança Validados (Setup Graham)', type: 'thought' },
-      ],
-      text: `Olá! Sou o **AntiTrader AI de Inteligência de Mercado & Valuation**.
-
-A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estritamente na **Zona de Compra**:
-• **Filtro Ativo:** Apenas ativos cotados abaixo ou na Zona de Compra (com margem de segurança configurada).
-• **Ativo em Foco:** **Banco do Brasil (BBAS3)** — Cotação R$ 24,64 vs Zona R$ 51,21 (+108% de margem). P/L de 4.0x e Graham Mult de 2.82x.
-• **Ativos S&P 500 na Zona:** Pfizer (PFE), AT&T (T), Ford (F), General Motors (GM), British American Tobacco (BTI), Walgreens (WBA).
-• **Ativos B3 na Zona:** BBAS3, PETR4, BBDC4, CMIG4, CSAN3, SAPR11, CPLE6, VALE3.
-
-**Como estudar cada oportunidade:**
-1. Navegue pela barra superior com a peneira ativada (**Peneira: Apenas Na Zona**).
-2. Clique em qualquer empresa para carregar a modelagem detalhada de valuation, múltiplos e balanço auditado.
-3. Leia a justificativa e os fundamentos no painel central.
-4. Me pergunte qualquer coisa aqui no chat (riscos, projeções, governança, concorrentes ou cenários macroeconômicos) para apoiar sua tomada de decisão!`,
-    },
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputMsg, setInputMsg] = useState('');
   const [enviandoMsg, setEnviandoMsg] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  // Sugestões inteligentes para prosseguir na conversa (estilo Google AI Studio / Meta AI)
+  const followUpSuggestions = useMemo(() => {
+    if (chatMessages.length === 0) return [];
+    const ultimaMsg = chatMessages[chatMessages.length - 1];
+    const texto = ultimaMsg.text.toLowerCase();
+
+    if (texto.includes('dividendo') || texto.includes('yield') || texto.includes('provento') || texto.includes('payout')) {
+      return [
+        'Qual o histórico e sustentabilidade desse dividendo?',
+        'Qual o Preço Teto para garantir 6% de Yield (Método Barsi)?',
+        'Quais os 3 maiores riscos para esse pagamento?',
+      ];
+    }
+    if (texto.includes('selic') || texto.includes('juro') || texto.includes('fed') || texto.includes('macro') || texto.includes('inflação')) {
+      return [
+        'Quais setores da B3 mais sofrem com esse cenário?',
+        'Como os FIIs de tijolo e papel reagem a essa taxa?',
+        'Qual a perspectiva para o dólar e commodities?',
+      ];
+    }
+    if (texto.includes('banco') || texto.includes('crédito') || texto.includes('inadimplência') || texto.includes('bbas3') || texto.includes('itub4')) {
+      return [
+        'Como está o índice de inadimplência e cobertura?',
+        'Comparar o ROE com os outros grandes bancos',
+        'Quais os riscos de governança ou regulação?',
+      ];
+    }
+    if (texto.includes('graham') || texto.includes('preço justo') || texto.includes('tp1') || texto.includes('tp2') || texto.includes('valuation')) {
+      return [
+        'O que acontece se a receita cair 20% (teste de estresse)?',
+        'Quais catalisadores podem fazer o preço convergir pro TP1?',
+        'Como definir o tamanho seguro da posição?',
+      ];
+    }
+    return [
+      'Quais são os 3 maiores riscos operacionais?',
+      'Comparar com os principais concorrentes do setor',
+      'Quais catalisadores podem destravar valor nos próximos 12 meses?',
+    ];
+  }, [chatMessages]);
 
   // Função para buscar cotação em tempo real para o ativo ativo
   const atualizarCotacaoAtual = async () => {
@@ -2416,11 +2432,19 @@ function calcularZonaPreco(op: {
           >
             {/* Header do Chat */}
             <div className="p-2.5 border-b border-slate-300 bg-slate-50 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Bot className="w-4 h-4 text-blue-600 shrink-0" />
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Bot className="w-3.5 h-3.5" />
+                </div>
                 <div className="min-w-0">
-                  <span className="font-bold text-xs text-slate-900 truncate">
-                    AntiTrader AI • {ativo.ticker}
+                  <div className="flex items-center gap-1.5 leading-none">
+                    <span className="font-bold text-xs text-slate-900 truncate">AntiTrader AI</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-800 font-bold">
+                      Copilot
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 truncate block mt-0.5">
+                    Inteligência de Mercado &amp; Valuation
                   </span>
                 </div>
               </div>
@@ -2461,77 +2485,149 @@ function calcularZonaPreco(op: {
             </div>
           </div>
 
-          {/* Mensagens do Chat com Steps de Auditoria e Formatação Rica */}
+                    {/* Mensagens do Chat com Steps de Auditoria ou Welcome Screen no estilo AI Studio / Meta AI */}
           <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 text-xs leading-relaxed font-sans min-h-0">
-            {chatMessages.map((msg) => (
-              <div key={msg.id} className="space-y-1.5">
-                
-                {/* Balão da Mensagem */}
-                <div
-                  className={`p-3 rounded-lg leading-relaxed ${
-                    msg.sender === 'user'
-                      ? 'bg-blue-50/90 text-slate-900 border-2 border-blue-300 ml-3 shadow-2xs'
-                      : 'bg-white text-slate-900 border-2 border-slate-300 shadow-2xs mr-1'
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-[10px] mb-1.5 font-mono text-slate-400">
-                    <span className="font-bold text-slate-700">
-                      {msg.sender === 'user' ? 'Você' : 'AntiTrader AI'}
+            {chatMessages.length === 0 ? (
+              <div className="h-full flex flex-col justify-center items-center text-center p-3 sm:p-5 max-w-sm sm:max-w-md mx-auto space-y-4 my-auto select-none">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                  <Bot className="w-6 h-6" />
+                </div>
+
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                    Como posso te ajudar hoje?
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-1 leading-relaxed">
+                    Sou o <strong>AntiTrader AI</strong>, seu analista de inteligência de mercado. Pergunte sobre qualquer ação, FII, juros, valuation ou riscos.
+                  </p>
+                </div>
+
+                {/* 3 Sugestões em Destaque (Estilo AI Studio / Meta AI com nosso layout) */}
+                <div className="w-full space-y-2 pt-1 text-left">
+                  <button
+                    type="button"
+                    onClick={() => handleEnviarMensagem("Quais são as melhores ações na Zona de Compra com maior margem de segurança na B3 e no S&P 500 hoje?")}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-blue-50/80 hover:border-blue-400 text-slate-800 transition-all cursor-pointer shadow-2xs group flex items-start gap-2.5 active:scale-98"
+                  >
+                    <span className="p-1 rounded-md bg-blue-100 text-blue-700 text-xs shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                      🔍
                     </span>
-                    <span>{msg.timestamp}</span>
-                  </div>
-
-                  {/* Conteúdo com Formatação Markdown Rica (Headers, Listas, Tabelas) */}
-                  {msg.sender === 'user' ? (
-                    <div className="whitespace-pre-line text-xs font-medium text-slate-800">
-                      {msg.text}
-                    </div>
-                  ) : (
-                    <FormattedMessage text={msg.text} />
-                  )}
-
-                  {/* Badge de Pesquisa Web Realizada (quando houver queries) */}
-                  {msg.searchQueries && msg.searchQueries.length > 0 && (
-                    <div className="mt-2 flex items-center gap-1.5 text-[10px] font-mono text-blue-800 bg-blue-50 border border-blue-200 px-2 py-1 rounded">
-                      <Globe className="w-3 h-3 text-blue-600 shrink-0" />
-                      <span className="font-bold">Pesquisa Web:</span>
-                      <span className="truncate italic">"{msg.searchQueries.join(', ')}"</span>
-                    </div>
-                  )}
-
-                  {/* Fontes Web Consultadas */}
-                  {msg.searchSources && msg.searchSources.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[10px]">
-                      <span className="text-slate-500 font-mono text-[9px] font-bold">Fontes Web:</span>
-                      {msg.searchSources.map((s, idx) => (
-                        <a
-                          key={idx}
-                          href={s.uri}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 text-[9px] hover:text-blue-700 transition-colors"
-                          title={s.title}
-                        >
-                          <span className="truncate max-w-[120px]">{s.title}</span>
-                          <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Rodapé da Mensagem (Origem e Modelo) */}
-                  {msg.source && (
-                    <div className="mt-2 pt-1 border-t border-slate-200 text-[9px] font-mono text-slate-400 flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <span>Origem:</span>
-                        <strong className="text-slate-600">{msg.source}</strong>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700 flex items-center justify-between">
+                        <span>Varredura da Zona de Compra</span>
+                        <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-blue-600" />
                       </div>
-                      <span className="text-slate-400">Setup Graham-Buffett</span>
+                      <div className="text-[10px] sm:text-[11px] text-slate-500 truncate mt-0.5">
+                        Ações com maior margem de segurança e desconto de Graham hoje.
+                      </div>
                     </div>
-                  )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleEnviarMensagem("Como o ciclo de juros (Selic e Fed Funds) e inflação estão impactando os setores e FIIs neste momento?")}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-teal-50/80 hover:border-teal-400 text-slate-800 transition-all cursor-pointer shadow-2xs group flex items-start gap-2.5 active:scale-98"
+                  >
+                    <span className="p-1 rounded-md bg-teal-100 text-teal-700 text-xs shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                      ⚡
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-slate-900 group-hover:text-teal-700 flex items-center justify-between">
+                        <span>Cenário Macro, Selic &amp; Juros</span>
+                        <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-teal-600" />
+                      </div>
+                      <div className="text-[10px] sm:text-[11px] text-slate-500 truncate mt-0.5">
+                        Impacto dos juros futuros nas ações de dividendos e FIIs.
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleEnviarMensagem("Explique como funciona o cálculo do Preço Justo de Graham e a esteira de metas com TP1 e TP2.")}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-indigo-50/80 hover:border-indigo-400 text-slate-800 transition-all cursor-pointer shadow-2xs group flex items-start gap-2.5 active:scale-98"
+                  >
+                    <span className="p-1 rounded-md bg-indigo-100 text-indigo-700 text-xs shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                      🎯
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-slate-900 group-hover:text-indigo-700 flex items-center justify-between">
+                        <span>Fórmula Graham &amp; Metas TP1/TP2</span>
+                        <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-indigo-600" />
+                      </div>
+                      <div className="text-[10px] sm:text-[11px] text-slate-500 truncate mt-0.5">
+                        Alvos de realização conservador (TP1) e estendido (TP2) com stop.
+                      </div>
+                    </div>
+                  </button>
                 </div>
               </div>
-            ))}
+            ) : (
+              chatMessages.map((msg) => (
+                <div key={msg.id} className="space-y-1.5">
+                  {/* Balão da Mensagem */}
+                  <div
+                    className={`p-3 rounded-lg leading-relaxed ${
+                      msg.sender === 'user'
+                        ? 'bg-blue-50/90 text-slate-900 border-2 border-blue-300 ml-3 shadow-2xs'
+                        : 'bg-white text-slate-900 border-2 border-slate-300 shadow-2xs mr-1'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[10px] mb-1.5 font-mono text-slate-400">
+                      <span className="font-bold text-slate-700">
+                        {msg.sender === 'user' ? 'Você' : 'AntiTrader AI'}
+                      </span>
+                      <span>{msg.timestamp}</span>
+                    </div>
+
+                    {msg.sender === 'user' ? (
+                      <div className="whitespace-pre-line text-xs font-medium text-slate-800">
+                        {msg.text}
+                      </div>
+                    ) : (
+                      <FormattedMessage text={msg.text} />
+                    )}
+
+                    {msg.searchQueries && msg.searchQueries.length > 0 && (
+                      <div className="mt-2 flex items-center gap-1.5 text-[10px] font-mono text-blue-800 bg-blue-50 border border-blue-200 px-2 py-1 rounded">
+                        <Globe className="w-3 h-3 text-blue-600 shrink-0" />
+                        <span className="font-bold">Pesquisa Web:</span>
+                        <span className="truncate italic">"{msg.searchQueries.join(', ')}"</span>
+                      </div>
+                    )}
+
+                    {msg.searchSources && msg.searchSources.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[10px]">
+                        <span className="text-slate-500 font-mono text-[9px] font-bold">Fontes Web:</span>
+                        {msg.searchSources.map((s, idx) => (
+                          <a
+                            key={idx}
+                            href={s.uri}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 text-[9px] hover:text-blue-700 transition-colors"
+                            title={s.title}
+                          >
+                            <span className="truncate max-w-[120px]">{s.title}</span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+
+                    {msg.source && (
+                      <div className="mt-2 pt-1 border-t border-slate-200 text-[9px] font-mono text-slate-400 flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <span>Origem:</span>
+                          <strong className="text-slate-600">{msg.source}</strong>
+                        </div>
+                        <span className="text-slate-400">Setup Graham-Buffett</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
 
             {enviandoMsg && (
               <div className="flex items-center gap-2 text-xs font-mono text-slate-600 p-2 bg-slate-50 rounded border border-slate-300">
@@ -2541,31 +2637,38 @@ function calcularZonaPreco(op: {
             )}
           </div>
 
-          {/* Sugestões Rápidas de Análise - Formato Super Compacto em Linha Única (Sem Emojis, Sem Ocupar Espaço) */}
-          <div className="px-2 py-1.5 border-t border-slate-200 bg-slate-50 shrink-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider shrink-0">
-              Sugestões:
+          {/* Sugestões Dinâmicas para Prosseguir na Conversa (Estilo Google AI Studio / Meta AI com nosso layout) */}
+          <div className="px-2.5 py-1.5 border-t border-slate-200 bg-slate-50 shrink-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-blue-600" />
+              <span>{chatMessages.length > 0 ? 'Prosseguir:' : 'Tópicos:'}</span>
             </span>
-            {[
-              { rotulo: 'Cotação Atual', q: `Qual a cotação atual e variação recente de ${ativo.ticker}? Mostre o preço de tela e análise de valuation.` },
-              { rotulo: 'Macro & Selic', q: `Como a taxa Selic e juros futuros impactam ${ativo.ticker} e o seu setor?` },
-              { rotulo: 'Pesquisa Web', q: `Pesquise os últimos fatos relevantes e notícias recentes de ${ativo.ticker}.` },
-              { rotulo: 'Comparar Concorrentes', q: `Compare ${ativo.ticker} com seus maiores concorrentes em margens, endividamento e múltiplos.` },
-              { rotulo: 'Preço Teto (Barsi)', q: `Simule o Preço Teto pelo método Décio Barsi para 6% de Dividend Yield em ${ativo.ticker}.` },
-              { rotulo: 'Teste de Estresse', q: `Faça um teste de estresse para ${ativo.ticker}: o que acontece se as receitas caírem 25%?` },
-              { rotulo: 'ROE vs ROIC', q: `Explique a diferença entre ROE e ROIC para ${ativo.ticker} e como o WACC afeta o valuation.` },
-              { rotulo: 'Fosso & Governança', q: `Aprofunde o fosso econômico (moat) e riscos de governança corporativa de ${ativo.ticker}.` },
-            ].map((item, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleEnviarMensagem(item.q)}
-                className="text-[10.5px] text-slate-700 bg-white hover:bg-blue-50 border border-slate-300 hover:border-blue-500 hover:text-blue-700 rounded px-2 py-0.5 whitespace-nowrap cursor-pointer transition-colors font-medium shadow-2xs shrink-0 flex items-center gap-1"
-              >
-                <span>{item.rotulo}</span>
-                <ArrowUpRight className="w-2.5 h-2.5 opacity-50" />
-              </button>
-            ))}
+            {(chatMessages.length > 0 && followUpSuggestions.length > 0
+              ? followUpSuggestions
+              : [
+                  `Análise de ${ativo.ticker}`,
+                  'Varredura da Zona de Compra',
+                  'Impacto da Selic e Juros',
+                  'Preço Teto Método Barsi',
+                  'Simulação de Estresse (-25%)',
+                ]
+            ).map((sugestao, idx) => {
+              const textoEnvio = typeof sugestao === 'string' && sugestao.startsWith('Análise de')
+                ? `Faça uma análise completa de valuation, múltiplos e margem de segurança de ${ativo.ticker}.`
+                : sugestao;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleEnviarMensagem(textoEnvio)}
+                  disabled={enviandoMsg}
+                  className="text-[10.5px] text-slate-700 bg-white hover:bg-blue-50 border border-slate-300 hover:border-blue-500 hover:text-blue-700 rounded-full px-2.5 py-0.5 whitespace-nowrap cursor-pointer transition-colors font-medium shadow-2xs shrink-0 flex items-center gap-1 disabled:opacity-50 active:scale-95"
+                >
+                  <span>{sugestao}</span>
+                  <ArrowUpRight className="w-2.5 h-2.5 opacity-50 text-blue-600" />
+                </button>
+              );
+            })}
           </div>
 
           {/* Caixa de Digitação do Chat - Geometria Perfeita e Ajuste Fino para Mobile e Desktop */}

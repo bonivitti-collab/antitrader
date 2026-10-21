@@ -17,6 +17,14 @@ import {
   Layers,
   Smartphone,
   ExternalLink,
+  Bot,
+  Globe,
+  Search,
+  Check,
+  Cpu,
+  BrainCircuit,
+  Lock,
+  ArrowUpRight,
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -29,16 +37,20 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
 
   const faqs = [
     {
+      q: 'Como funciona o AntiTrader AI na prática?',
+      a: 'O AntiTrader AI é o seu copiloto de inteligência financeira. Em vez de você perder horas lendo PDFs de 120 páginas da CVM ou SEC, você simplesmente pergunta: "A empresa X está barata mesmo ou tem armadilha contábil?". A IA audita o balanço, calcula o Preço Justo de Graham, analisa o impacto da Selic/juros e entrega um veredito tático com pontos de entrada, alvo e stop em segundos.',
+    },
+    {
       q: 'Como funcionam os 7 dias de teste grátis?',
-      a: 'Você se cadastra e tem acesso imediato e irrestrito a todas as funcionalidades do AntiTrader. Nenhuma mensalidade é cobrada hoje. Se você decidir que a ferramenta não é para você, basta cancelar antes do 8º dia com um único clique no painel, sem burocracia.',
+      a: 'Você se cadastra e tem acesso imediato e irrestrito a todas as funcionalidades do AntiTrader e à IA. Nenhuma mensalidade é cobrada hoje. Se você decidir que a ferramenta não é para você, basta cancelar antes do 8º dia com um único clique no painel, sem pegadinhas nem burocracia.',
     },
     {
       q: 'Preciso ser um investidor experiente para usar?',
-      a: 'Não. O AntiTrader foi desenhado exatamente para eliminar o "financês" e planilhas complexas. A ferramenta calcula o Preço Justo de cada ação, diz se ela está ou não na Zona de Compra recomendada e define os alvos de saída (TP1 e TP2).',
+      a: 'Não. O AntiTrader foi desenhado exatamente para quem não quer perder tempo com planilhas complexas ou jargões de corretora. A ferramenta já entrega tudo mastigado: se o papel está na Zona de Compra, qual o Preço Justo matemático e quando realizar o lucro (TP1 e TP2).',
     },
     {
       q: 'Quais mercados e ativos estão cobertos?',
-      a: 'Monitoramos diariamente mais de 160 ativos com fundamentos sólidos: as principais ações da B3 (Brasil), Fundos Imobiliários (FIIs) e os constituintes de valor do S&P 500 (Estados Unidos).',
+      a: 'Monitoramos diariamente mais de 160 ativos com fundamentos sólidos: as principais ações da B3 (Brasil), Fundos Imobiliários (FIIs) e os constituintes de valor do S&P 500 (Estados Unidos), com varredura automática às 19h.',
     },
     {
       q: 'Como é calculada a margem de segurança e o Preço Justo?',
@@ -68,7 +80,11 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
         </div>
 
         <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-300">
-          <a href="#metodo" className="hover:text-white transition-colors">O Método</a>
+          <a href="#ia-copilot" className="hover:text-blue-400 transition-colors flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+            <span>IA Especialista</span>
+          </a>
+          <a href="#metodo" className="hover:text-white transition-colors">O Método Graham</a>
           <a href="#recursos" className="hover:text-white transition-colors">Recursos</a>
           <a href="#precos" className="hover:text-white transition-colors">Planos &amp; Preços</a>
           <a href="#faq" className="hover:text-white transition-colors">Dúvidas</a>
@@ -101,24 +117,23 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/3 left-1/3 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Badge de Destaque */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-950/70 border border-blue-500/30 text-blue-300 text-xs font-mono font-bold uppercase tracking-wider mb-6 animate-pulse">
-          <Zap className="w-3.5 h-3.5 text-blue-400" />
-          <span>Fórmula de Benjamin Graham &amp; Warren Buffett Automatizada</span>
+        {/* Badge de Destaque com Foco na IA */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-blue-950 via-slate-900 to-teal-950 border border-blue-500/40 text-blue-300 text-xs font-mono font-bold uppercase tracking-wider mb-6 shadow-lg shadow-blue-900/20">
+          <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" style={{ animationDuration: '6s' }} />
+          <span>VALUATION QUANTITATIVO + IA ANALISTA INSTITUCIONAL</span>
         </div>
 
         {/* Headline Principal */}
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-tight max-w-4xl mx-auto">
           Pare de caçar ações no escuro. <br />
           <span className="bg-gradient-to-r from-blue-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">
-            Invista com Margem de Segurança Real.
+            Tenha um Analista de IA no seu bolso 24h por dia.
           </span>
         </h1>
 
         {/* Subheadline */}
         <p className="mt-5 text-sm sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          Chega de girar carteira pagando taxas ou seguindo dicas de fóruns. 
-          O <strong>AntiTrader</strong> rastreia diariamente 168 ativos na <strong>B3</strong> e no <strong>S&amp;P 500</strong>, calcula o Preço Justo conservador e entrega a <strong>Zona de Compra</strong>, <strong>Alvo TP1</strong>, <strong>Alvo TP2</strong> e <strong>Stop de Invalidação</strong>.
+          O <strong>AntiTrader</strong> une a matemática conservadora de Benjamin Graham com um <strong>Copilot de Inteligência Artificial</strong>. Ele audita balanços da CVM e SEC, detecta pegadinhas contábeis, cruza o macro em tempo real e entrega a <strong>Zona de Compra exata</strong> com alvos <strong>TP1</strong>, <strong>TP2</strong> e <strong>Stop de Invalidação</strong>.
         </p>
 
         {/* CTAs do Hero */}
@@ -135,7 +150,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
             onClick={onEnterApp}
             className="w-full sm:w-auto px-5 py-3.5 rounded-xl font-bold text-sm text-slate-300 hover:text-white bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 transition-all cursor-pointer flex items-center justify-center gap-2"
           >
-            <span>Acessar Terminal ao Vivo</span>
+            <span>Ver Terminal &amp; IA ao Vivo</span>
             <ChevronRight className="w-4 h-4 text-slate-400" />
           </button>
         </div>
@@ -148,7 +163,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            7 dias de acesso total
+            7 dias de acesso total à IA e ao terminal
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -168,7 +183,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
               <span className="ml-2 font-mono text-slate-300 font-bold">Terminal AntiTrader — Esteira de Metas</span>
             </div>
             <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
-              ● Varredura Atualizada
+              ● Varredura Diária Ativa
             </span>
           </div>
 
@@ -225,9 +240,176 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
       </section>
 
       {/* ======================================================== */}
+      {/* SEÇÃO ESTELAR DEDICADA À IA: "VOCÊ PRECISA DISSO"        */}
+      {/* ======================================================== */}
+      <section id="ia-copilot" className="py-16 sm:py-24 bg-gradient-to-b from-[#090f1d] via-[#0b1329] to-[#090f1d] border-y border-blue-900/40 px-4 sm:px-8 relative overflow-hidden">
+        
+        {/* Glows de IA */}
+        <div className="absolute top-1/2 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-6xl mx-auto">
+          
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/40 text-blue-300 border border-blue-700/40 text-xs font-mono font-bold uppercase tracking-wider mb-4">
+              <BrainCircuit className="w-4 h-4 text-cyan-400" />
+              <span>Inteligência Artificial Feita para Investidores</span>
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+              Enquanto outros perdem 4 horas decifrando um balanço, a nossa IA te entrega a tese em 5 segundos.
+            </h2>
+            <p className="mt-4 text-sm sm:text-base text-slate-300 leading-relaxed">
+              O <strong>AntiTrader AI Copilot</strong> foi calibrado exclusivamente em literatura de <em>Value Investing</em> clássico (Benjamin Graham, Luiz Bazin, Warren Buffett) e dados regulatórios auditados da CVM e SEC. Pergunte qualquer coisa e receba respostas sem jargão nem viés de corretora.
+            </p>
+          </div>
+
+          {/* Grid: Mockup da Conversa Real com a IA + 3 Pilares */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            
+            {/* Lado Esquerdo: Mockup Interativo da IA (7 Colunas) */}
+            <div className="lg:col-span-7 bg-slate-950 p-4 sm:p-6 rounded-2xl border-2 border-blue-500/40 shadow-2xl space-y-4">
+              
+              {/* Header do Mockup do Chat */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-white block leading-none">AntiTrader AI Copilot</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">● Conectado com CVM, SEC &amp; Notícias</span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono bg-blue-950 text-blue-300 px-2 py-0.5 rounded border border-blue-800/40">
+                  Web Research Ativa
+                </span>
+              </div>
+
+              {/* Balão 1: Pergunta do Usuário */}
+              <div className="bg-blue-900/30 border border-blue-500/30 p-3 rounded-xl ml-6 text-xs text-slate-200">
+                <div className="text-[10px] font-mono text-blue-300 font-bold mb-1">Você perguntou:</div>
+                <p className="font-medium">
+                  "O Banco do Brasil (BBAS3) está barato mesmo ou é uma armadilha de valor com risco político estatal?"
+                </p>
+              </div>
+
+              {/* Balão 2: Resposta Auditada da IA */}
+              <div className="bg-slate-900/90 border border-slate-700/70 p-3.5 sm:p-4 rounded-xl text-xs text-slate-200 space-y-2.5">
+                <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                  <span className="font-bold text-teal-400 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-teal-400" />
+                    Diagnóstico AntiTrader AI
+                  </span>
+                  <span>Agora mesmo</span>
+                </div>
+
+                <p className="leading-relaxed text-slate-300">
+                  <strong>Não é armadilha de valor.</strong> Os fundamentos auditados confirmam que BBAS3 negocia com <strong>margem de segurança de 108%</strong> em relação ao Preço Justo de Graham:
+                </p>
+
+                <div className="bg-slate-950/90 p-2.5 rounded-lg border border-slate-800 space-y-1.5 font-mono text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">• P/L Atual:</span>
+                    <span className="text-white font-bold">4.0x (Média histórica: 6.2x)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">• ROE Consolidado:</span>
+                    <span className="text-emerald-400 font-bold">21.3% (Nível de banco privado)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">• Dividend Yield:</span>
+                    <span className="text-teal-400 font-bold">9.8% a.a. (Colchão de proteção)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">• Preço Justo (TP1):</span>
+                    <span className="text-emerald-300 font-bold">R$ 51,21 vs Cotação R$ 24,64</span>
+                  </div>
+                </div>
+
+                <p className="leading-relaxed text-slate-300">
+                  💡 <strong>Diretriz Tática:</strong> A ação está dentro da <strong>Zona de Compra recomendada</strong>. O alto retorno sobre patrimônio e o payout de 45% neutralizam grande parte do ruído político. <strong>Stop de invalidação definido em R$ 19,12 (-20%).</strong>
+                </p>
+
+                {/* Sugestões de Follow-up (Demonstrando o recurso no mockup) */}
+                <div className="pt-2 border-t border-slate-800">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">
+                    Sugestões para prosseguir na conversa:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] text-blue-300 border border-slate-700 flex items-center gap-1">
+                      <span>Qual o histórico de inadimplência?</span>
+                      <ArrowUpRight className="w-2.5 h-2.5 opacity-60" />
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] text-blue-300 border border-slate-700 flex items-center gap-1">
+                      <span>Comparar com Itaú (ITUB4)</span>
+                      <ArrowUpRight className="w-2.5 h-2.5 opacity-60" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Lado Direito: Os 3 Superpoderes da IA (5 Colunas) */}
+            <div className="lg:col-span-5 space-y-6 text-left">
+              
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Detecção de Pegadinhas Contábeis</h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    A IA audita se o lucro da empresa veio de vendas reais ou de eventos pontuais não-recorrentes, separando o ouro da armadilha.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 rounded-xl bg-teal-600/20 text-teal-400 border border-teal-500/30 shrink-0">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Pesquisa Web &amp; Fatos Relevantes ao Vivo</h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    A IA cruza notícias de última hora, comunicados ao mercado e decisões de juros (Copom/Fed) para entender o que está acontecendo hoje.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 rounded-xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                  <Target className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Zero Conflito de Interesses</h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Corretoras ganham quando você gira carteira. O AntiTrader ganha quando você acerta. A IA foi programada para priorizar a sua segurança.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <a
+                  href="#precos"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-500 hover:to-teal-500 shadow-md shadow-blue-600/30 transition-all cursor-pointer"
+                >
+                  <span>Experimentar a IA por 7 Dias Grátis</span>
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* ======================================================== */}
       {/* SEÇÃO: O PROBLEMA VS A SOLUÇÃO (A DOR DO TRADER)         */}
       {/* ======================================================== */}
-      <section id="metodo" className="py-16 sm:py-20 bg-[#090f1d] border-y border-slate-800 px-4 sm:px-8">
+      <section id="metodo" className="py-16 sm:py-20 bg-[#070b14] px-4 sm:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <h2 className="text-xs font-mono font-bold text-blue-400 uppercase tracking-widest">
@@ -297,7 +479,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
       {/* ======================================================== */}
       {/* SEÇÃO: OS 4 PILARES DA PLATAFORMA                        */}
       {/* ======================================================== */}
-      <section id="recursos" className="py-16 sm:py-24 px-4 sm:px-8 max-w-6xl mx-auto">
+      <section id="recursos" className="py-16 sm:py-24 px-4 sm:px-8 max-w-6xl mx-auto border-t border-slate-800">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <h2 className="text-xs font-mono font-bold text-teal-400 uppercase tracking-widest">
             Tecnologia Institucional ao seu Alcance
@@ -418,7 +600,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
                 <ul className="mt-6 space-y-3 text-xs sm:text-sm text-slate-300">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Acesso total ao Terminal AntiTrader</span>
+                    <span><strong>AntiTrader AI Copilot</strong> ilimitado 24h</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -430,7 +612,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>AntiTrader AI Copilot integrado</span>
+                    <span>Web Research em tempo real integrado</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -473,6 +655,10 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
                 <ul className="mt-6 space-y-3 text-xs sm:text-sm text-slate-200">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span><strong>Consultas e auditorias ILIMITADAS</strong> na IA</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span><strong>Todos os recursos</strong> do plano mensal</span>
                   </li>
                   <li className="flex items-center gap-2">
@@ -486,10 +672,6 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>Suporte prioritário via WhatsApp</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Acesso antecipado a novos radares e ativos</span>
                   </li>
                 </ul>
               </div>
@@ -562,7 +744,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
               <span className="text-[10px] text-slate-500">• Sentinel Systems</span>
             </div>
             <p className="text-[11px] text-slate-500">
-              Plataforma analítica e quantitativa de valuation baseada na metodologia de Benjamin Graham.
+              Plataforma analítica e quantitativa de valuation com Inteligência Artificial baseada em Benjamin Graham.
             </p>
           </div>
 
@@ -570,6 +752,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
             <button onClick={onEnterApp} className="hover:text-white transition-colors cursor-pointer">
               Terminal
             </button>
+            <a href="#ia-copilot" className="hover:text-white transition-colors">IA Copilot</a>
             <a href="#precos" className="hover:text-white transition-colors">Planos</a>
             <a href="#faq" className="hover:text-white transition-colors">Dúvidas</a>
             <span className="text-slate-700">|</span>
