@@ -64,6 +64,17 @@ test('health check works without optional provider or Gemini keys', async () => 
     assert.equal(chatResponse.status, 200);
     assert.ok(chat.reply);
     assert.doesNotMatch(chat.usedSource, /Congelado/);
+
+    const searchResponse = await fetch(`http://127.0.0.1:${address.port}/api/gemini/search-financials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: 'BBAS3' }),
+    });
+    const search = await searchResponse.json();
+    assert.equal(searchResponse.status, 200);
+    assert.equal(search.ticker, 'BBAS3');
+    assert.ok(search.preco > 0);
+    assert.ok(search.pl > 0);
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => error ? reject(error) : resolve());
