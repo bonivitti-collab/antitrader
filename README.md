@@ -125,6 +125,10 @@ O endpoint consulta ambos os serviços; falhas retornam HTTP 503 e `degraded`,
 sem expor erros internos ou credenciais. A inicialização exige ambos os serviços
 disponíveis. Após perda da conexão Redis, reinicie o backend quando o Redis
 voltar; reconexão automática não faz parte desta base.
+As rotas `/api` aceitam até 60 requisições por minuto por IP; excedentes recebem
+HTTP 429. O limitador é local ao processo. Em produção, configure limites também
+no proxy e revise `trust proxy` conforme a topologia, sem confiar em cabeçalhos
+de IP enviados diretamente pelo cliente.
 
 ## Banco de dados
 
@@ -197,8 +201,8 @@ em outra interface, protegendo-o com proxy e firewall.
 
 O Compose fornecido é **somente para desenvolvimento local**, com portas de
 banco/cache restritas a loopback. Produção exige gestão de segredos, TLS,
-backups, monitoramento e revisão de permissões. A API inicial não possui login,
-rate limiting nem endpoints de negócio e não deve ser exposta como serviço público.
+backups, monitoramento e revisão de permissões. A API inicial não possui login
+nem endpoints de negócio e não deve ser exposta como serviço público.
 
 ## Próximos passos do MVP
 

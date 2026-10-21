@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import { Pool } from 'pg';
 import { createClient } from 'redis';
 import type { HealthResponse } from './types/index.js';
@@ -15,9 +16,10 @@ if (!process.env.DATABASE_URL || !process.env.REDIS_URL ||
   throw new Error('Configure as URLs e senhas de PostgreSQL e Redis no arquivo .env.');
 }
 
+const databaseUrl = new URL(process.env.DATABASE_URL);
+databaseUrl.password = process.env.POSTGRES_PASSWORD;
 const database = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  password: process.env.POSTGRES_PASSWORD,
+  connectionString: databaseUrl.toString(),
   connectionTimeoutMillis: 5000,
   query_timeout: 5000,
 });
@@ -33,6 +35,12 @@ cache.on('error', () => console.error('Conexão Redis interrompida.'));
 
 const app = express();
 app.disable('x-powered-by');
+app.use('/api', rateLimit({
+  windowMs: 60_000,
+  limit: 60,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+}));
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/api/health', async (_request, response) => {
