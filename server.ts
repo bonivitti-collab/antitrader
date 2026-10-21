@@ -625,7 +625,7 @@ app.get('/api/universe-search', (req, res) => {
 });
 
 // Endpoint: Disparo manual de varredura geral imediata sob demanda
-app.post('/api/scan-now', async (_req, res) => {
+app.all('/api/scan-now', async (_req, res) => {
   if (IS_FROZEN) {
     return res.json({
       success: false,
