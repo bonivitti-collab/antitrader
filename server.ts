@@ -422,6 +422,20 @@ function formatBrtDate(epochMs: number): string {
   }) + ' BRT';
 }
 
+// Helper de concorrência para consultas resilientes sem saturar conexões
+async function runWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (index < items.length) {
+      const i = index++;
+      results[i] = await fn(items[i]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 async function runDailyUniverseScan(isManual = false): Promise<any> {
   if (IS_FROZEN) {
     console.log('[Universe Scanner] PWA CONGELADO: Execução de varredura diária cancelada.');
@@ -432,8 +446,10 @@ async function runDailyUniverseScan(isManual = false): Promise<any> {
   console.log(`[Universe Scanner] Iniciando varredura geral diária (${isManual ? 'MANUAL' : 'AGENDADA 19:00 BRT'})...`);
 
   try {
-    const updated = await Promise.all(
-      OPORTUNIDADES_SETUP.map(async (op) => {
+    const updated = await runWithConcurrency(
+      OPORTUNIDADES_SETUP,
+      8,
+      async (op) => {
         try {
           const quote = await getLiveQuoteDetails(op.ticker, op.mercado as 'B3' | 'US');
           if (quote && quote.price > 0) {
@@ -456,7 +472,7 @@ async function runDailyUniverseScan(isManual = false): Promise<any> {
           // Mantém valor calibrado
         }
         return op;
-      })
+      }
     );
 
     cachedOpportunities = updated;
@@ -464,12 +480,9 @@ async function runDailyUniverseScan(isManual = false): Promise<any> {
     lastScanTimestamp = Date.now();
 
     const buyZoneCount = updated.filter((op) => {
-      if (op.lpa > 0 && op.vpa > 0) {
-        const just = Math.sqrt(22.5 * op.lpa * op.vpa);
-        const teto = just * (1 - (op.margemSugerida || 25) / 100);
-        return op.preco <= teto;
-      }
-      return false;
+      const fair = op.tp1 && op.tp1 > 0 ? op.tp1 : (op.lpa > 0 && op.vpa > 0 ? Math.sqrt(22.5 * op.lpa * op.vpa) : 0);
+      const teto = op.entradaMax && op.entradaMax > 0 ? op.entradaMax : fair * (1 - (op.margemSugerida || 25) / 100);
+      return op.preco <= teto;
     }).length;
 
     lastScanSummary = `Varredura ${isManual ? 'manual sob demanda' : 'diária programada'} concluída com sucesso: ${updated.length} ativos avaliados na B3 e S&P 500, com ${buyZoneCount} oportunidades na Zona de Compra Graham-Buffett.`;
@@ -513,8 +526,10 @@ async function refreshOpportunitiesCache() {
   if (isRefreshingCache) return;
   isRefreshingCache = true;
   try {
-    const updated = await Promise.all(
-      OPORTUNIDADES_SETUP.map(async (op) => {
+    const updated = await runWithConcurrency(
+      OPORTUNIDADES_SETUP,
+      8,
+      async (op) => {
         try {
           const quote = await getLiveQuoteDetails(op.ticker, op.mercado as 'B3' | 'US');
           if (quote && quote.price > 0) {
@@ -537,7 +552,7 @@ async function refreshOpportunitiesCache() {
           // Mantém valor calibrado
         }
         return op;
-      })
+      }
     );
     cachedOpportunities = updated;
     lastOpportunitiesFetchTime = Date.now();
@@ -639,8 +654,8 @@ app.get('/api/audit-diagnostics', async (_req, res) => {
       const isValidGraham = op.lpa > 0 && op.vpa > 0;
       const numGraham = isValidGraham ? Math.sqrt(22.5 * op.lpa * op.vpa) : 0;
       const grahamCresc = (op.lpa > 0 && op.yieldAAA > 0) ? (op.lpa * (8.5 + 2 * op.g) * 4.4) / op.yieldAAA : 0;
-      const fairPrice = (isValidGraham && grahamCresc > 0) ? (numGraham + grahamCresc) / 2 : numGraham;
-      const tetoCompra = fairPrice * (1 - (op.margemSugerida || 25) / 100);
+      const fairPrice = op.tp1 || ((isValidGraham && grahamCresc > 0) ? (numGraham + grahamCresc) / 2 : numGraham);
+      const tetoCompra = op.entradaMax || (fairPrice * (1 - (op.margemSugerida || 25) / 100));
       const inBuyZone = livePrice <= tetoCompra;
       const margemVsTeto = tetoCompra > 0 ? ((tetoCompra - livePrice) / tetoCompra) * 100 : 0;
 
@@ -686,8 +701,11 @@ app.get('/api/audit-diagnostics', async (_req, res) => {
     });
   }
   const startTime = Date.now();
-  const report = await Promise.all(
-    OPORTUNIDADES_SETUP.map(async (op) => {
+  const sample = OPORTUNIDADES_SETUP.slice(0, 20);
+  const report = await runWithConcurrency(
+    sample,
+    5,
+    async (op) => {
       const itemStart = Date.now();
       const quote = await getLiveQuoteDetails(op.ticker, op.mercado as 'B3' | 'US');
       const latencyMs = Date.now() - itemStart;
@@ -723,7 +741,7 @@ app.get('/api/audit-diagnostics', async (_req, res) => {
         status: inBuyZone ? 'ZONA DE COMPRA' : 'ACOMPANHAMENTO',
         margemVsTeto: Number(margemVsTeto.toFixed(1)),
       };
-    })
+    }
   );
 
   const totalTimeMs = Date.now() - startTime;

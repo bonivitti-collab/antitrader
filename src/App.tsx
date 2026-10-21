@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { OPORTUNIDADES_SETUP } from './data/oportunidades';
+import { OPORTUNIDADES_SETUP, type Oportunidade } from './data/oportunidades';
+export type { Oportunidade };
 import { PWAInstallButton } from './components/PWAInstallButton';
 import {
   Send,
@@ -42,37 +43,7 @@ import {
 import { MetasTrackerModal } from './components/MetasTrackerModal';
 import { searchUniverse, findInUniverse, getUniverseStats, type UniverseAsset } from './data/universe';
 
-export interface Oportunidade {
-  id: string;
-  ticker: string;
-  nome: string;
-  mercado: 'B3' | 'US';
-  moeda: 'BRL' | 'USD';
-  preco: number;
-  lpa: number;
-  vpa: number;
-  g: number;
-  yieldAAA: number;
-  margemSugerida: number;
-  ultimoBalanco: string;
-  lucroLiquido: string;
-  receitaLiquida: string;
-  roe: number;
-  dividendYield: number;
-  pl: number;
-  pvp: number;
-  grahamMult: number;
-  dividaStatus: string;
-  categoria: string;
-  destaqueSetup: string;
-  breveAnalise: string;
-  condicoesBuyHold: string;
-  moat: string;
-  variacaoDia?: number;
-  horarioCotacao?: string;
-  origem?: string;
-  tipoAtivo?: 'AÇÃO' | 'FII' | 'REIT';
-}
+
 
 export interface StepTrace {
   label: string;
@@ -324,7 +295,7 @@ export default function GrahamBuyZoneWorkspace() {
 
   // Filtros da Barra de Oportunidades
   const [filtroMercado, setFiltroMercado] = useState<'TODOS' | 'B3' | 'US' | 'FII' | 'REIT'>('TODOS');
-  const [filtroZonaApenas, setFiltroZonaApenas] = useState(true);
+  const [filtroSub, setFiltroSub] = useState<'TODOS' | 'ZONA' | 'CLASSE_A' | 'CONFIRMADA' | 'IBKR'>('TODOS');
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>(OPORTUNIDADES_SETUP);
   const [carregandoOportunidades, setCarregandoOportunidades] = useState(false);
   const [buscaTicker, setBuscaTicker] = useState('');
@@ -718,12 +689,22 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
   const calc = useMemo(() => {
     const isValidGraham = lpa > 0 && vpa > 0;
     const isValidYield = yieldAAA > 0;
+    const isOriginal = lpa === ativo.lpa && vpa === ativo.vpa;
 
-    const numeroGraham = isValidGraham ? Math.sqrt(22.5 * lpa * vpa) : 0;
-    const grahamCresc = (lpa > 0 && isValidYield) ? (lpa * (8.5 + 2 * g) * 4.4) / yieldAAA : 0;
+    const numeroGraham = (isOriginal && ativo.numeroGraham)
+      ? ativo.numeroGraham
+      : (isValidGraham ? Math.sqrt(22.5 * lpa * vpa) : 0);
+
+    const grahamCresc = (isOriginal && ativo.valorGrahamCrescimento)
+      ? ativo.valorGrahamCrescimento
+      : ((lpa > 0 && isValidYield) ? (lpa * (8.5 + 2 * g) * 4.4) / yieldAAA : 0);
 
     let fair = 0;
-    if (isValidGraham && grahamCresc > 0) {
+    if (isOriginal && ativo.tp1 && ativo.tp1 > 0) {
+      fair = ativo.tp1;
+    } else if (isOriginal && ativo.pj && ativo.pj > 0) {
+      fair = ativo.pj;
+    } else if (isValidGraham && grahamCresc > 0) {
       fair = (numeroGraham + grahamCresc) / 2;
     } else if (isValidGraham) {
       fair = numeroGraham;
@@ -731,7 +712,10 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
       fair = grahamCresc;
     }
 
-    const zona = fair * (1 - margem / 100);
+    const zona = (isOriginal && ativo.entradaMax && ativo.entradaMax > 0)
+      ? ativo.entradaMax
+      : fair * (1 - margem / 100);
+
     const vsFair = preco > 0 ? ((fair - preco) / preco) * 100 : 0;
     const vsZona = preco > 0 ? ((zona - preco) / preco) * 100 : 0;
 
@@ -769,7 +753,7 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
       pvpAtual,
       grahamMultiplier,
     };
-  }, [preco, lpa, vpa, g, yieldAAA, margem]);
+  }, [preco, lpa, vpa, g, yieldAAA, margem, ativo]);
 
   const isAtivoB3 = (mercado?: string, m?: string, ticker?: string) => {
     if (mercado === 'B3') return true;
@@ -892,30 +876,60 @@ ${preco <= calc.zona ? '✓ Dentro da Zona de Compra com Margem de Segurança ga
   };
 
 // Cálculo unificado de Preço Justo e Zona de Compra Graham-Buffett
-function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: number; margemSugerida?: number }) {
+function calcularZonaPreco(op: {
+  lpa: number;
+  vpa: number;
+  g: number;
+  yieldAAA: number;
+  margemSugerida?: number;
+  tp1?: number;
+  entradaMax?: number;
+  pj?: number;
+}) {
   const isValidGraham = op.lpa > 0 && op.vpa > 0;
   const isValidYield = op.yieldAAA > 0;
   const numeroGraham = isValidGraham ? Math.sqrt(22.5 * op.lpa * op.vpa) : 0;
   const grahamCresc = (op.lpa > 0 && isValidYield) ? (op.lpa * (8.5 + 2 * op.g) * 4.4) / op.yieldAAA : 0;
   let fair = 0;
-  if (isValidGraham && grahamCresc > 0) {
+  if (op.tp1 && op.tp1 > 0) {
+    fair = op.tp1;
+  } else if (op.pj && op.pj > 0) {
+    fair = op.pj;
+  } else if (isValidGraham && grahamCresc > 0) {
     fair = (numeroGraham + grahamCresc) / 2;
   } else if (isValidGraham) {
     fair = numeroGraham;
   } else if (grahamCresc > 0) {
     fair = grahamCresc;
   }
-  const margem = op.margemSugerida !== undefined ? op.margemSugerida : 30;
-  const zona = fair * (1 - margem / 100);
+  let zona = 0;
+  if (op.entradaMax && op.entradaMax > 0) {
+    zona = op.entradaMax;
+  } else {
+    const margem = op.margemSugerida !== undefined ? op.margemSugerida : 30;
+    zona = fair * (1 - margem / 100);
+  }
   return { fair, zona, numeroGraham, grahamCresc };
 }
 
-  // Contagem de ativos estritamente na Zona de Compra Graham
+  // Contagens para os filtros do setup
   const totalNaZona = useMemo(() => {
     return oportunidades.filter((op) => {
       const { zona } = calcularZonaPreco(op);
       return op.preco <= zona;
     }).length;
+  }, [oportunidades]);
+
+  const totalClasseA = useMemo(() => {
+    return oportunidades.filter((op) => op.classe === 'A').length;
+  }, [oportunidades]);
+
+  const totalConfirmadas = useMemo(() => {
+    return oportunidades.filter((op) => op.statusGraham === 'confirmada' || op.categoria === 'CONFIRMADA').length;
+  }, [oportunidades]);
+
+  const totalIbkr = useMemo(() => {
+    return oportunidades.filter((op) => op.naCarteiraIbkr).length;
   }, [oportunidades]);
 
   // Filtragem das Oportunidades do Setup (Peneira com Preço Justo e Zona de Compra)
@@ -931,10 +945,18 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         } else if (filtroMercado === 'REIT') {
           if (op.tipoAtivo !== 'REIT') return false;
         }
-        if (filtroZonaApenas) {
+
+        if (filtroSub === 'ZONA') {
           const { zona } = calcularZonaPreco(op);
           if (op.preco > zona) return false;
+        } else if (filtroSub === 'CLASSE_A') {
+          if (op.classe !== 'A') return false;
+        } else if (filtroSub === 'CONFIRMADA') {
+          if (op.statusGraham !== 'confirmada' && op.categoria !== 'CONFIRMADA') return false;
+        } else if (filtroSub === 'IBKR') {
+          if (!op.naCarteiraIbkr) return false;
         }
+
         if (buscaTicker.trim()) {
           const q = buscaTicker.trim().toLowerCase();
           const matchTicker = op.ticker.toLowerCase().includes(q);
@@ -944,14 +966,18 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
         return true;
       })
       .sort((a, b) => {
-        // Ordena com maior desconto em relação à Zona de Compra primeiro
+        if (filtroSub === 'CLASSE_A' || filtroSub === 'TODOS' || filtroSub === 'CONFIRMADA') {
+          const scoreA = a.score || 0;
+          const scoreB = b.score || 0;
+          if (scoreA !== scoreB) return scoreB - scoreA;
+        }
         const zA = calcularZonaPreco(a).zona;
         const zB = calcularZonaPreco(b).zona;
         const descA = a.preco > 0 ? (zA - a.preco) / a.preco : 0;
         const descB = b.preco > 0 ? (zB - b.preco) / b.preco : 0;
         return descB - descA;
       });
-  }, [oportunidades, filtroMercado, filtroZonaApenas, buscaTicker]);
+  }, [oportunidades, filtroMercado, filtroSub, buscaTicker]);
 
   // Busca em tempo real no Universo Expandido (504 S&P 500, Top 50 B3, FIIs e REITs)
   const matchesUniverso = useMemo(() => {
@@ -1317,11 +1343,11 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                   ))}
                 </div>
 
-                <div className="inline-flex rounded border border-slate-300 p-0.5 bg-slate-100">
+                <div className="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-100 flex-wrap gap-0.5 text-[9.5px]">
                   <button
-                    onClick={() => setFiltroZonaApenas(false)}
+                    onClick={() => setFiltroSub('TODOS')}
                     className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors ${
-                      !filtroZonaApenas
+                      filtroSub === 'TODOS'
                         ? 'bg-white text-slate-900 shadow-2xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
@@ -1329,19 +1355,60 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                     Todos ({oportunidades.length})
                   </button>
                   <button
-                    onClick={() => setFiltroZonaApenas(true)}
+                    onClick={() => setFiltroSub('ZONA')}
                     className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors flex items-center gap-0.5 ${
-                      filtroZonaApenas
+                      filtroSub === 'ZONA'
                         ? 'bg-emerald-600 text-white shadow-2xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <span>Na Zona</span>
                     <span className={`text-[8px] px-1 rounded-full ${
-                      filtroZonaApenas ? 'bg-emerald-800 text-white' : 'bg-emerald-100 text-emerald-800'
+                      filtroSub === 'ZONA' ? 'bg-emerald-800 text-white' : 'bg-emerald-100 text-emerald-800'
                     }`}>
                       {totalNaZona}
                     </span>
+                  </button>
+                  <button
+                    onClick={() => setFiltroSub('CLASSE_A')}
+                    className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors flex items-center gap-0.5 ${
+                      filtroSub === 'CLASSE_A'
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>Classe A</span>
+                    <span className={`text-[8px] px-1 rounded-full ${
+                      filtroSub === 'CLASSE_A' ? 'bg-indigo-800 text-white' : 'bg-indigo-100 text-indigo-800'
+                    }`}>
+                      {totalClasseA}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setFiltroSub('CONFIRMADA')}
+                    className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors flex items-center gap-0.5 ${
+                      filtroSub === 'CONFIRMADA'
+                        ? 'bg-teal-700 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>Confirmadas</span>
+                    <span className={`text-[8px] px-1 rounded-full ${
+                      filtroSub === 'CONFIRMADA' ? 'bg-teal-900 text-white' : 'bg-teal-100 text-teal-800'
+                    }`}>
+                      {totalConfirmadas}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setFiltroSub('IBKR')}
+                    className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors flex items-center gap-0.5 ${
+                      filtroSub === 'IBKR'
+                        ? 'bg-purple-700 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title="Ativos na carteira IBKR"
+                  >
+                    <span>IBKR ({totalIbkr})</span>
                   </button>
                 </div>
 
@@ -1422,7 +1489,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                     onClick={() => {
                       setBuscaTicker('');
                       setFiltroMercado('TODOS');
-                      setFiltroZonaApenas(false);
+                      setFiltroSub('TODOS');
                     }}
                     className="mt-2 text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
                   >
@@ -1454,9 +1521,9 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                           : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs hover:bg-slate-50'
                       }`}
                     >
-                      {/* Topo do Card: Ticker, Mercado e Status */}
+                      {/* Topo do Card: Ticker, Mercado, Score, Status e IBKR */}
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1 flex-wrap">
                           <span className="text-sm font-black font-mono text-slate-900 leading-none">
                             {op.ticker}
                           </span>
@@ -1469,8 +1536,26 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                               ? 'bg-amber-50 text-amber-900 border-amber-300'
                               : 'bg-indigo-50 text-indigo-900 border-indigo-300'
                           }`}>
-                            {op.tipoAtivo === 'FII' ? 'FII (B3)' : op.tipoAtivo === 'REIT' ? 'REIT (US)' : op.mercado}
+                            {op.tipoAtivo === 'FII' ? 'FII' : op.tipoAtivo === 'REIT' ? 'REIT' : op.mercado}
                           </span>
+                          {op.score !== undefined && (
+                            <span className={`text-[8px] font-black px-1.5 py-0.2 rounded font-mono border ${
+                              op.classe === 'A'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : op.classe === 'B'
+                                ? 'bg-blue-50 text-blue-800 border-blue-300'
+                                : op.classe === 'C'
+                                ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                : 'bg-rose-50 text-rose-800 border-rose-300'
+                            }`}>
+                              {op.score} ({op.classe})
+                            </span>
+                          )}
+                          {op.naCarteiraIbkr && (
+                            <span className="text-[8px] font-black px-1 py-0.2 rounded bg-purple-700 text-white shadow-2xs">
+                              IBKR
+                            </span>
+                          )}
                           {isSelected && (
                             <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-blue-600 text-white shadow-2xs">
                               EM FOCO
@@ -1478,21 +1563,25 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                           )}
                         </div>
 
-                        {naZona ? (
-                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded uppercase bg-emerald-600 text-white shadow-2xs flex items-center gap-0.5">
+                        {op.statusGraham === 'confirmada' ? (
+                          <span className="text-[8px] font-black px-1.5 py-0.2 rounded uppercase bg-emerald-700 text-white shadow-2xs">
+                            CONFIRMADA
+                          </span>
+                        ) : naZona ? (
+                          <span className="text-[8px] font-black px-1.5 py-0.2 rounded uppercase bg-emerald-600 text-white shadow-2xs flex items-center gap-0.5">
                             <Check className="w-2.5 h-2.5" />
                             NA ZONA
                           </span>
                         ) : (
-                          <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                          <span className="text-[8px] font-semibold px-1.5 py-0.2 rounded uppercase bg-slate-100 text-slate-600 border border-slate-200">
                             RADAR
                           </span>
                         )}
                       </div>
 
-                      {/* Nome da Empresa */}
-                      <p className="text-[11px] font-medium text-slate-600 truncate mb-1.5">
-                        {op.nome}
+                      {/* Nome da Empresa e Setor */}
+                      <p className="text-[11px] font-medium text-slate-600 truncate mb-1">
+                        {op.nome} {op.setor ? `• ${op.setor}` : ''}
                       </p>
 
                       {/* Preços e Margem de Segurança */}
@@ -1504,24 +1593,24 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="block text-[8px] font-sans font-bold text-slate-400 uppercase">Zona Compra (-25%)</span>
+                          <span className="block text-[8px] font-sans font-bold text-slate-400 uppercase">
+                            {op.entradaMax ? 'Teto Zona (0.80×PJ)' : 'Zona Compra (-25%)'}
+                          </span>
                           <span className="font-bold text-emerald-700">
                             {moedaSimbolo} {zona.toFixed(2)}
                           </span>
                         </div>
                       </div>
 
-                      {/* Margem e Múltiplos */}
+                      {/* Margem e Dual Targets TP1 / TP2 */}
                       <div className="flex items-center justify-between mt-1.5 text-[10px] text-slate-600 font-mono">
                         <span className={`font-bold ${naZona ? 'text-emerald-700' : 'text-slate-500'}`}>
-                          {naZona ? `+${margemPct.toFixed(0)}% margem` : 'Acima do teto'}
+                          {naZona ? `+${margemPct.toFixed(0)}% margem` : (op.acaoEntrada || 'Acima do teto')}
                         </span>
-                        <div className="flex items-center gap-1.5 text-slate-500">
-                          <span>DY {op.dividendYield}%</span>
-                          <span>•</span>
-                          <span>P/L {op.pl.toFixed(1)}x</span>
-                          <span>•</span>
-                          <span>P/VP {op.pvp.toFixed(1)}x</span>
+                        <div className="flex items-center gap-1 text-slate-500 font-semibold">
+                          {op.tp1 && <span>PJ {moedaSimbolo}{op.tp1.toFixed(0)}</span>}
+                          {op.tp2 && <span>• TP2 {moedaSimbolo}{op.tp2.toFixed(0)}</span>}
+                          <span>• P/L {op.pl.toFixed(1)}x</span>
                         </div>
                       </div>
 
@@ -1760,6 +1849,38 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
                   {ativo.ticker}
                 </span>
                 <span className="text-xs text-slate-500 font-mono">({ativo.mercado})</span>
+                {ativo.score !== undefined && (
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded font-mono border ${
+                    ativo.classe === 'A'
+                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      : ativo.classe === 'B'
+                      ? 'bg-blue-100 text-blue-900 border-blue-300'
+                      : ativo.classe === 'C'
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : 'bg-rose-100 text-rose-900 border-rose-300'
+                  }`}>
+                    SCORE {ativo.score} • CLASSE {ativo.classe}
+                  </span>
+                )}
+                {ativo.statusGraham && (
+                  <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase border ${
+                    ativo.statusGraham === 'confirmada'
+                      ? 'bg-emerald-600 text-white border-emerald-700'
+                      : 'bg-amber-600 text-white border-amber-700'
+                  }`}>
+                    {ativo.statusGraham === 'confirmada' ? 'CONFIRMADA' : 'OBSERVAÇÃO'}
+                  </span>
+                )}
+                {ativo.naCarteiraIbkr && (
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded uppercase bg-purple-700 text-white border border-purple-800 shadow-2xs">
+                    CARTEIRA IBKR
+                  </span>
+                )}
+                {ativo.setor && (
+                  <span className="text-[10px] text-slate-500 font-sans">
+                    • {ativo.setor}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-600 font-mono mt-1 flex-wrap">
                 <span>{ativo.ultimoBalanco}</span>
@@ -1844,7 +1965,7 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
             <div className="p-3 bg-white border-2 border-slate-300 rounded-lg shadow-2xs">
               <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                Fair Value Médio
+                Preço Justo (PJ / TP1)
               </span>
               <span className="text-xl font-bold text-slate-900 font-mono block mt-0.5">
                 {fmtMoeda(calc.fair)}
@@ -1857,25 +1978,37 @@ function calcularZonaPreco(op: { lpa: number; vpa: number; g: number; yieldAAA: 
             <div className="p-3 bg-emerald-50/70 border-2 border-emerald-400 rounded-lg shadow-2xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-emerald-950 uppercase tracking-wider block">
-                  Teto Zona ({margem}% desc.)
+                  Teto Zona ({ativo.entradaMax ? '0.80×PJ' : `${margem}% desc.`})
                 </span>
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
               </div>
               <span className="text-xl font-bold text-emerald-700 font-mono block mt-0.5">
                 {fmtMoeda(calc.zona)}
               </span>
-              <span className="text-[11px] text-emerald-900 font-mono mt-0.5 block">
-                {preco <= calc.zona ? '✓ Dentro da Zona de Segurança' : `Distância: ${Math.abs(calc.vsZona).toFixed(1)}% para compra`}
+              <span className="text-[11px] text-emerald-900 font-mono mt-0.5 block truncate">
+                {preco <= calc.zona 
+                  ? '✓ Dentro da Zona de Segurança' 
+                  : (ativo.acaoEntrada || `Distância: ${Math.abs(calc.vsZona).toFixed(1)}% para compra`)}
               </span>
             </div>
 
             <div className="p-3 bg-white border-2 border-slate-300 rounded-lg shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                Upside até Fair Value
-              </span>
-              <span className={`text-xl font-bold font-mono block mt-0.5 ${calc.vsFair >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                {fmtPercent(calc.vsFair)}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                  Upside TP1 &amp; Alvo TP2
+                </span>
+                <Target className="w-3.5 h-3.5 text-blue-600" />
+              </div>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className={`text-xl font-bold font-mono ${calc.vsFair >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                  {fmtPercent(calc.vsFair)}
+                </span>
+                {ativo.tp2 && (
+                  <span className="text-xs font-mono font-bold text-blue-700">
+                    TP2: {fmtMoeda(ativo.tp2)}
+                  </span>
+                )}
+              </div>
               <span className="text-[11px] text-slate-600 font-mono mt-0.5 block whitespace-nowrap">
                 P/L &times; P/VP: <strong className={calc.grahamMultiplier <= 22.5 ? 'text-emerald-700' : 'text-amber-700'}>{calc.grahamMultiplier.toFixed(2)}</strong> (Máx: 22.5)
               </span>
