@@ -1693,19 +1693,36 @@ function calcularZonaPreco(op: {
               </div>
             </div>
 
-            {/* Lista dos cards de metas */}
+            {/* Lista dos cards de metas com Ciclo Graham (Entrada ➔ TP1 ➔ TP2) */}
             <div className="space-y-3 pb-8">
               {trackedList.map((item) => {
                 const isFinalizada = item.status === 'FINALIZADA';
                 const moedaSimbolo = getMoedaSimbolo(item);
+                const tp1 = item.tp1 || item.precoAlvo;
+                const tp2 = item.tp2 || Number((tp1 * 1.35).toFixed(2));
+                const precoStop = item.precoStop || Number((item.precoEntrada * 0.80).toFixed(2));
+
                 const ganhoAtualPct = item.precoEntrada > 0
                   ? ((item.precoAtual - item.precoEntrada) / item.precoEntrada) * 100
                   : 0;
-                const totalDeltaMeta = item.precoAlvo - item.precoEntrada;
-                const atualDelta = item.precoAtual - item.precoEntrada;
-                const progressoPct = totalDeltaMeta > 0
-                  ? Math.min(100, Math.max(0, (atualDelta / totalDeltaMeta) * 100))
-                  : (isFinalizada ? 100 : 0);
+
+                // Estágio 1: Entrada -> TP1
+                const deltaTp1 = tp1 - item.precoEntrada;
+                const avancoTp1 = item.precoAtual - item.precoEntrada;
+                const progressoTp1Pct = deltaTp1 > 0
+                  ? Math.min(100, Math.max(0, (avancoTp1 / deltaTp1) * 100))
+                  : (item.precoAtual >= tp1 ? 100 : 0);
+
+                // Estágio 2: TP1 -> TP2
+                const deltaTp2 = tp2 - tp1;
+                const avancoTp2 = item.precoAtual - tp1;
+                const progressoTp2Pct = deltaTp2 > 0
+                  ? Math.min(100, Math.max(0, (avancoTp2 / deltaTp2) * 100))
+                  : (item.precoAtual >= tp2 ? 100 : 0);
+
+                const isInvalidado = item.etapaCiclo === 'INVALIDADO' || item.precoAtual <= precoStop;
+                const isTp1Batido = item.etapaCiclo === 'TP1_BATIDO' || item.precoAtual >= tp1;
+                const isTp2Batido = item.etapaCiclo === 'TP2_BATIDO' || item.precoAtual >= tp2;
 
                 return (
                   <div
@@ -1714,14 +1731,18 @@ function calcularZonaPreco(op: {
                       carregarTickerPorSimbolo(item.ticker);
                     }}
                     className={`bg-white rounded-xl p-3.5 border-2 transition-all cursor-pointer shadow-2xs ${
-                      isFinalizada
+                      isInvalidado
+                        ? 'border-rose-400 bg-rose-50/20'
+                        : isFinalizada || isTp2Batido
                         ? 'border-emerald-400 bg-gradient-to-r from-emerald-50/40 via-white to-white'
+                        : isTp1Batido
+                        ? 'border-teal-400 bg-teal-50/20'
                         : 'border-slate-200 hover:border-blue-400'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
                       <div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-base font-black font-mono text-slate-900">{item.ticker}</span>
                           <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase border ${
                             item.mercado === 'B3'
@@ -1730,18 +1751,35 @@ function calcularZonaPreco(op: {
                           }`}>
                             {item.mercado}
                           </span>
+                          {item.score !== undefined && (
+                            <span className="text-[8px] font-black px-1.5 py-0.2 rounded font-mono border bg-emerald-50 text-emerald-800 border-emerald-300">
+                              Score {item.score}
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-slate-600 font-medium truncate mt-0.5">{item.nome}</div>
                       </div>
 
                       <div className="text-right">
-                        {isFinalizada ? (
+                        {isInvalidado ? (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-600 text-white shadow-2xs uppercase">
+                            ⚠️ Stop Invalidação
+                          </span>
+                        ) : isFinalizada || isTp2Batido ? (
                           <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs uppercase">
-                            🏆 Objetivo Atingido
+                            🏆 TP2 Concluído
+                          </span>
+                        ) : isTp1Batido ? (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-teal-700 text-white shadow-2xs uppercase">
+                            🎯 TP1 Batido (Realizar 50%)
+                          </span>
+                        ) : item.precoAtual > item.precoTetoZona ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-300 uppercase">
+                            A Caminho do TP1
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-300 uppercase">
-                            Em Andamento
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 uppercase">
+                            ● Na Zona de Compra
                           </span>
                         )}
                         <div className={`text-xs font-bold font-mono mt-0.5 ${
@@ -1756,37 +1794,63 @@ function calcularZonaPreco(op: {
                       </div>
                     </div>
 
-                    {/* Preços */}
-                    <div className="mt-2.5 grid grid-cols-3 gap-1 bg-slate-50 p-2 rounded-lg border border-slate-200 text-center font-mono text-xs">
+                    {/* Preços: Entrada/Stop, Atual, TP1, TP2 */}
+                    <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-1 bg-slate-50 p-2 rounded-lg border border-slate-200 text-center font-mono text-xs">
                       <div>
                         <span className="block text-[8px] font-sans font-bold text-slate-400 uppercase">Entrada</span>
                         <span className="font-bold text-slate-800">{moedaSimbolo} {item.precoEntrada.toFixed(2)}</span>
+                        <span className="block text-[8px] text-rose-600 font-bold">Stop: {moedaSimbolo} {precoStop.toFixed(2)}</span>
                       </div>
                       <div>
                         <span className="block text-[8px] font-sans font-bold text-slate-400 uppercase">{isFinalizada ? 'Saída' : 'Atual'}</span>
                         <span className="font-extrabold text-slate-900">{moedaSimbolo} {(isFinalizada ? item.precoFinalizacao || item.precoAtual : item.precoAtual).toFixed(2)}</span>
                       </div>
                       <div>
-                        <span className="block text-[8px] font-sans font-bold text-blue-700 uppercase">Alvo Graham</span>
-                        <span className="font-bold text-blue-800">{moedaSimbolo} {item.precoAlvo.toFixed(2)}</span>
+                        <span className="block text-[8px] font-sans font-bold text-teal-700 uppercase">Alvo TP1</span>
+                        <span className="font-bold text-teal-800">{moedaSimbolo} {tp1.toFixed(2)}</span>
+                        <span className="block text-[8px] text-teal-600">{progressoTp1Pct >= 100 ? '✓ Batido' : `${progressoTp1Pct.toFixed(0)}%`}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] font-sans font-bold text-indigo-700 uppercase">Alvo TP2</span>
+                        <span className="font-bold text-indigo-800">{moedaSimbolo} {tp2.toFixed(2)}</span>
+                        <span className="block text-[8px] text-indigo-600">{progressoTp2Pct >= 100 ? '✓ Batido' : `${progressoTp2Pct.toFixed(0)}%`}</span>
                       </div>
                     </div>
 
-                    {/* Barra de progresso */}
-                    <div className="mt-2 space-y-1">
-                      <div className="flex justify-between text-[11px] font-medium text-slate-600">
-                        <span>Progresso da meta</span>
-                        <span className="font-mono font-bold text-slate-900">{progressoPct.toFixed(0)}%</span>
+                    {/* Barras de progresso duplas */}
+                    <div className="mt-2 space-y-1.5">
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between text-[10px] font-medium text-slate-600">
+                          <span>Estágio 1: Entrada ➔ TP1 ({moedaSimbolo} {tp1.toFixed(2)})</span>
+                          <span className="font-mono font-bold text-slate-900">{progressoTp1Pct.toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-blue-600 to-teal-500"
+                            style={{ width: `${progressoTp1Pct}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            isFinalizada ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-600 to-emerald-500'
-                          }`}
-                          style={{ width: `${progressoPct}%` }}
-                        />
+
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between text-[10px] font-medium text-slate-600">
+                          <span>Estágio 2: TP1 ➔ TP2 ({moedaSimbolo} {tp2.toFixed(2)})</span>
+                          <span className="font-mono font-bold text-slate-900">{progressoTp2Pct.toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-teal-500 to-indigo-600"
+                            style={{ width: `${progressoTp2Pct}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
+
+                    {item.nota && (
+                      <p className="mt-2 text-[11px] text-slate-600 bg-slate-50 p-1.5 rounded border border-slate-200">
+                        💡 {item.nota}
+                      </p>
+                    )}
 
                     <button
                       type="button"

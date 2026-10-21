@@ -19,6 +19,8 @@ import {
   DollarSign,
   Activity,
   Percent,
+  ShieldAlert,
+  Flame,
 } from 'lucide-react';
 import { TrackedOpportunity, TrackerStats } from '../types/tracker';
 import {
@@ -78,9 +80,7 @@ export function MetasTrackerModal({
     });
   }, [trackedList, activeTab, filtroMercado, busca]);
 
-  if (!isOpen) return null;
-
-  // Salvar novo preço de entrada
+  // Salvar novo preço de entrada editado pelo usuário
   const handleSaveEntryPrice = (ticker: string) => {
     const val = parseFloat(editPriceVal.replace(',', '.'));
     if (!isNaN(val) && val > 0) {
@@ -88,24 +88,21 @@ export function MetasTrackerModal({
       setTrackedList(updated);
     }
     setEditingTicker(null);
-    setEditPriceVal('');
   };
 
   // Finalizar manualmente
   const handleFinalize = (ticker: string) => {
-    if (confirm(`Deseja finalizar o acompanhamento de ${ticker} com o preço atual de mercado?`)) {
-      const updated = finalizeManually(trackedList, ticker);
-      setTrackedList(updated);
-    }
-  };
-
-  // Reabrir acompanhamento
-  const handleReopen = (item: TrackedOpportunity) => {
-    const updated = reopenTracking(trackedList, item.ticker, item.precoAtual);
+    const updated = finalizeManually(trackedList, ticker);
     setTrackedList(updated);
   };
 
-  // Remover da esteira
+  // Reabrir
+  const handleReopen = (ticker: string) => {
+    const updated = reopenTracking(trackedList, ticker);
+    setTrackedList(updated);
+  };
+
+  // Remover
   const handleRemove = (ticker: string) => {
     if (confirm(`Remover ${ticker} da esteira de acompanhamento?`)) {
       const updated = removeTrackedOpportunity(trackedList, ticker);
@@ -113,84 +110,81 @@ export function MetasTrackerModal({
     }
   };
 
-  // Resetar para seeds padrão
-  const handleReset = () => {
-    if (confirm('Restaurar lista de acompanhamento e histórico para os valores padrão de auditoria?')) {
-      const reset = resetTrackedOpportunities();
-      setTrackedList(reset);
-    }
-  };
+  // Copiar relatório
+  const copiarRelatorioMetas = () => {
+    const lines = [
+      '====================================================',
+      'ANTITRADER — RELATÓRIO DO CICLO DE METAS GRAHAM (TP1 & TP2)',
+      `Data: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`,
+      `Total Ativas: ${stats.totalAtivas} | Metas Batidas: ${stats.totalFinalizadas} | Taxa de Acerto: ${stats.taxaAcertoPercent}%`,
+      `Lucro Médio Realizado: +${stats.lucroMedioRealizadoPercent}% | Maior Ganho: +${stats.maiorGanhoPercent}%`,
+      '====================================================',
+      '',
+    ];
 
-  // Copiar relatório em texto
-  const handleCopyReport = () => {
-    const ativas = trackedList.filter((i) => i.status === 'EM_ANDAMENTO');
-    const finalizadas = trackedList.filter((i) => i.status === 'FINALIZADA');
-
-    let text = `🎯 *ANTITRADER - RELATÓRIO DE METAS & CICLO DE OPORTUNIDADES*\n`;
-    text += `Data: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}\n\n`;
-    text += `📊 *ESTATÍSTICAS CONSOLIDADAS:*\n`;
-    text += `• Metas Batidas (Finalizadas): ${stats.totalFinalizadas}\n`;
-    text += `• Em Acompanhamento: ${stats.totalAtivas}\n`;
-    text += `• Taxa de Acerto: ${stats.taxaAcertoPercent}%\n`;
-    text += `• Lucro Médio Realizado: +${stats.lucroMedioRealizadoPercent}%\n`;
-    text += `• Tempo Médio até o Alvo: ${stats.tempoMedioDias} dias\n\n`;
-
-    text += `🏆 *METAS BATIDAS (HISTÓRICO CONCLUÍDO):*\n`;
-    finalizadas.forEach((f) => {
-      text += `• ${f.ticker} (${f.nome}) | Entrada: ${f.moeda === 'BRL' ? 'R$' : '$'} ${f.precoEntrada.toFixed(2)} ➔ Saída: ${f.moeda === 'BRL' ? 'R$' : '$'} ${f.precoFinalizacao?.toFixed(2) || f.precoAtual.toFixed(2)} | Lucro: +${f.lucroRealizadoPercent}% em ${f.diasDecorridos} dias\n`;
+    trackedList.forEach((i) => {
+      const isFin = i.status === 'FINALIZADA';
+      const m = i.moeda === 'BRL' ? 'R$' : '$';
+      const tp1 = i.tp1 || i.precoAlvo;
+      const tp2 = i.tp2 || Number((tp1 * 1.35).toFixed(2));
+      const stop = i.precoStop || Number((i.precoEntrada * 0.80).toFixed(2));
+      lines.push(
+        `• ${i.ticker} (${i.mercado}) - ${i.nome} [${i.etapaCiclo || i.status}]`,
+        `  Entrada: ${m} ${i.precoEntrada.toFixed(2)} | Stop (-20%): ${m} ${stop.toFixed(2)}`,
+        `  Cotação Atual: ${m} ${i.precoAtual.toFixed(2)} | TP1: ${m} ${tp1.toFixed(2)} | TP2: ${m} ${tp2.toFixed(2)}`,
+        `  Resultado: ${isFin ? `+${i.lucroRealizadoPercent}% Realizado` : `${(((i.precoAtual - i.precoEntrada) / i.precoEntrada) * 100).toFixed(1)}% flutuante`}`,
+        `  Diretriz: ${i.nota || 'Acompanhamento do ciclo de valorização em andamento.'}`,
+        ''
+      );
     });
 
-    text += `\n🟢 *EM ACOMPANHAMENTO (PROGRESSO ATUAL):*\n`;
-    ativas.forEach((a) => {
-      const ganhoAtual = ((a.precoAtual - a.precoEntrada) / a.precoEntrada) * 100;
-      text += `• ${a.ticker} (${a.nome}) | Entrada: ${a.moeda === 'BRL' ? 'R$' : '$'} ${a.precoEntrada.toFixed(2)} | Atual: ${a.moeda === 'BRL' ? 'R$' : '$'} ${a.precoAtual.toFixed(2)} (${ganhoAtual >= 0 ? '+' : ''}${ganhoAtual.toFixed(1)}%) | Alvo Graham: ${a.moeda === 'BRL' ? 'R$' : '$'} ${a.precoAlvo.toFixed(2)}\n`;
-    });
-
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(lines.join('\n'));
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2500);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/80 flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl border-t sm:border border-slate-300 shadow-2xl w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-300 flex flex-col max-h-[92vh] overflow-hidden">
         
         {/* ======================================================== */}
-        {/* HEADER DO MODAL (Sem blur, safe-area top no mobile)      */}
+        {/* MODAL HEADER                                             */}
         {/* ======================================================== */}
-        <div className="pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))] sm:pt-3.5 pb-3 px-3 sm:px-4 border-b border-slate-300 bg-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
-              <Target className="w-4 h-4 sm:w-5 sm:h-5" />
+        <div className="p-3 sm:p-5 border-b border-slate-200 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-blue-600/30 rounded-xl border border-blue-400/40 text-blue-300">
+              <Target className="w-5 h-5 text-blue-400" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <h2 className="text-sm sm:text-lg font-bold text-slate-900 leading-tight truncate">
-                  Acompanhamento de Metas &amp; Ciclo de Valor
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+                  Acompanhamento do Ciclo de Metas Graham
                 </h2>
-                <span className="hidden sm:inline text-[10px] font-mono font-bold bg-blue-100 text-blue-900 border border-blue-300 px-2 py-0.5 rounded-full uppercase">
-                  Graham Target Engine
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold uppercase">
+                  Zona ➔ TP1 ➔ TP2
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-600 truncate mt-0.5 font-medium">
-                Monitoramento contínuo de variação até o Preço Justo de Graham.
+              <p className="text-xs text-slate-300 mt-0.5 hidden sm:block">
+                Monitoramento contínuo desde a entrada na zona (0.67–0.80× PJ) até o Preço Justo (TP1) e Alvo Estendido (TP2).
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleCopyReport}
-              className="flex items-center gap-1 px-2 sm:px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
-              title="Copiar relatório formatado de metas"
+              onClick={copiarRelatorioMetas}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold border border-slate-600 transition-colors cursor-pointer shadow-2xs"
+              title="Copiar relatório completo de acompanhamento"
             >
-              {copiado ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-              <span className="hidden sm:inline">{copiado ? 'Copiado!' : 'Copiar'}</span>
+              {copiado ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-300" />}
+              <span className="hidden sm:inline">{copiado ? 'Copiado!' : 'Copiar Relatório'}</span>
             </button>
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               title="Fechar"
             >
               <X className="w-5 h-5" />
@@ -199,81 +193,81 @@ export function MetasTrackerModal({
         </div>
 
         {/* ======================================================== */}
-        {/* KPI CARDS (RESUMO QUANTITATIVO - COMPACTO NO MOBILE)     */}
+        {/* KPI CARDS (RESUMO QUANTITATIVO)                          */}
         {/* ======================================================== */}
-        <div className="p-2 sm:p-4 bg-[#f8fafc] border-b border-slate-200 shrink-0">
-          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2">
+        <div className="p-2 sm:p-3 bg-[#f8fafc] border-b border-slate-200 shrink-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2">
             
             {/* Em Andamento */}
-            <div className="bg-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border border-blue-200 shadow-2xs">
-              <div className="flex items-center justify-between text-blue-600 mb-0.5 sm:mb-1">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider font-sans truncate">Andamento</span>
-                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+            <div className="bg-white p-2 rounded-xl border border-blue-200 shadow-2xs">
+              <div className="flex items-center justify-between text-blue-600 mb-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider font-sans">Em Andamento</span>
+                <Clock className="w-3.5 h-3.5 shrink-0" />
               </div>
-              <div className="text-sm sm:text-lg font-bold font-mono text-slate-900 leading-tight">
+              <div className="text-base sm:text-lg font-bold font-mono text-slate-900 leading-tight">
                 {stats.totalAtivas}
               </div>
-              <span className="hidden sm:inline text-[10px] text-blue-700 font-medium">Ativos na esteira</span>
+              <span className="text-[10px] text-blue-700 font-medium">Na esteira Graham</span>
             </div>
 
-            {/* Metas Batidas */}
-            <div className="bg-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border border-emerald-300 shadow-2xs bg-gradient-to-br from-emerald-50/40 to-white">
-              <div className="flex items-center justify-between text-emerald-700 mb-0.5 sm:mb-1">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider font-sans truncate">Batidas</span>
-                <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600 shrink-0" />
+            {/* TP1 Batidos */}
+            <div className="bg-white p-2 rounded-xl border border-teal-200 shadow-2xs">
+              <div className="flex items-center justify-between text-teal-700 mb-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider font-sans">TP1 Batidos</span>
+                <Target className="w-3.5 h-3.5 shrink-0 text-teal-600" />
               </div>
-              <div className="text-sm sm:text-lg font-extrabold font-mono text-emerald-900 leading-tight">
+              <div className="text-base sm:text-lg font-extrabold font-mono text-teal-900 leading-tight">
+                {stats.totalTp1Batidos}
+              </div>
+              <span className="text-[10px] text-teal-700 font-medium">Preço Justo atingido</span>
+            </div>
+
+            {/* Metas Concluídas (TP2) */}
+            <div className="bg-white p-2 rounded-xl border border-emerald-300 shadow-2xs bg-gradient-to-br from-emerald-50/40 to-white">
+              <div className="flex items-center justify-between text-emerald-700 mb-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider font-sans">Ciclos Concluídos</span>
+                <Trophy className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              </div>
+              <div className="text-base sm:text-lg font-extrabold font-mono text-emerald-900 leading-tight">
                 {stats.totalFinalizadas}
               </div>
-              <span className="hidden sm:inline text-[10px] text-emerald-700 font-bold">Objetivo concluído</span>
+              <span className="text-[10px] text-emerald-700 font-bold">100% finalizadas</span>
             </div>
 
             {/* Taxa de Acerto */}
-            <div className="bg-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between text-slate-600 mb-0.5 sm:mb-1">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider font-sans truncate">Acerto</span>
-                <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 shrink-0" />
+            <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between text-slate-600 mb-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider font-sans">Taxa de Acerto</span>
+                <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               </div>
-              <div className="text-sm sm:text-lg font-bold font-mono text-slate-900 leading-tight">
+              <div className="text-base sm:text-lg font-bold font-mono text-slate-900 leading-tight">
                 {stats.taxaAcertoPercent}%
               </div>
-              <span className="hidden sm:inline text-[10px] text-slate-500 font-medium">Nas finalizadas</span>
+              <span className="text-[10px] text-slate-500 font-medium">Nas concluídas</span>
             </div>
 
             {/* Lucro Médio Realizado */}
-            <div className="bg-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between text-slate-600 mb-0.5 sm:mb-1">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider font-sans truncate">Lucro Méd.</span>
-                <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600 shrink-0" />
+            <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between text-slate-600 mb-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider font-sans">Lucro Médio</span>
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               </div>
-              <div className="text-sm sm:text-lg font-bold font-mono text-emerald-700 leading-tight">
+              <div className="text-base sm:text-lg font-bold font-mono text-emerald-700 leading-tight">
                 +{stats.lucroMedioRealizadoPercent}%
               </div>
-              <span className="hidden sm:inline text-[10px] text-slate-500 font-medium">Por oportunidade</span>
-            </div>
-
-            {/* Maior Ganho */}
-            <div className="bg-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between text-slate-600 mb-0.5 sm:mb-1">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider font-sans truncate">Maior Ganho</span>
-                <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600 shrink-0" />
-              </div>
-              <div className="text-sm sm:text-lg font-bold font-mono text-emerald-800 leading-tight">
-                +{stats.maiorGanhoPercent}%
-              </div>
-              <span className="hidden sm:inline text-[10px] text-slate-500 font-medium">Recorde Graham</span>
+              <span className="text-[10px] text-slate-500 font-medium">Por posição</span>
             </div>
 
             {/* Tempo Médio */}
-            <div className="bg-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between text-slate-600 mb-0.5 sm:mb-1">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider font-sans truncate">Tempo Méd.</span>
-                <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-600 shrink-0" />
+            <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between text-slate-600 mb-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider font-sans">Tempo Médio</span>
+                <Activity className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
               </div>
-              <div className="text-sm sm:text-lg font-bold font-mono text-slate-900 leading-tight">
+              <div className="text-base sm:text-lg font-bold font-mono text-slate-900 leading-tight">
                 {stats.tempoMedioDias} d
               </div>
-              <span className="hidden sm:inline text-[10px] text-slate-500 font-medium">Até a meta final</span>
+              <span className="text-[10px] text-slate-500 font-medium">Prazo 2–3 anos</span>
             </div>
 
           </div>
@@ -284,7 +278,6 @@ export function MetasTrackerModal({
         {/* ======================================================== */}
         <div className="p-2 sm:p-3 border-b border-slate-200 bg-white flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 sm:gap-2 shrink-0">
           
-          {/* Sub-abas de Visualização */}
           <div className="flex items-center gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-lg border border-slate-300">
             <button
               onClick={() => setActiveTab('ATIVAS')}
@@ -312,7 +305,7 @@ export function MetasTrackerModal({
               }`}
             >
               <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-              <span>Metas Batidas</span>
+              <span>Ciclos Concluídos</span>
               <span className={`text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 rounded-full ${
                 activeTab === 'FINALIZADAS' ? 'bg-emerald-800 text-white' : 'bg-emerald-100 text-emerald-800'
               }`}>
@@ -332,7 +325,6 @@ export function MetasTrackerModal({
             </button>
           </div>
 
-          {/* Filtros de Mercado e Busca */}
           <div className="flex items-center gap-1.5">
             <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded border border-slate-300 text-xs">
               {(['TODOS', 'B3', 'US'] as const).map((m) => (
@@ -358,66 +350,79 @@ export function MetasTrackerModal({
               />
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2" />
             </div>
-
-            <button
-              onClick={handleReset}
-              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer shrink-0"
-              title="Restaurar padrão inicial do setup"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
           </div>
-
         </div>
 
         {/* ======================================================== */}
-        {/* CORPO: LISTA DE CARDS DE ACOMPANHAMENTO                  */}
+        {/* LISTAGEM DOS ATIVOS EM ACOMPANHAMENTO                    */}
         {/* ======================================================== */}
-        <div className="p-3 sm:p-4 overflow-y-auto flex-1 space-y-3 bg-[#f8fafc]">
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 space-y-3 bg-[#f1f5f9]/60">
           {filteredList.length === 0 ? (
-            <div className="p-12 text-center text-slate-500 bg-white rounded-2xl border border-slate-200 space-y-2">
-              <Target className="w-10 h-10 text-slate-300 mx-auto" />
+            <div className="bg-white border border-dashed border-slate-300 rounded-xl p-8 text-center text-slate-500 space-y-2">
+              <Clock className="w-8 h-8 mx-auto text-slate-400" />
               <p className="font-semibold text-sm">Nenhuma oportunidade encontrada nesta categoria.</p>
               <p className="text-xs text-slate-400">
-                Conforme os ativos entrarem na Zona de Compra, eles são enfileirados automaticamente aqui!
+                Conforme os ativos entrarem na Zona de Compra (0.67x a 0.80x PJ), eles são enfileirados automaticamente aqui!
               </p>
             </div>
           ) : (
             filteredList.map((item) => {
               const isFinalizada = item.status === 'FINALIZADA';
               const moedaSimbolo = item.moeda === 'BRL' ? 'R$' : '$';
-              
-              // Cálculos de variação e progresso
+              const tp1 = item.tp1 || item.precoAlvo;
+              const tp2 = item.tp2 || Number((tp1 * 1.35).toFixed(2));
+              const precoStop = item.precoStop || Number((item.precoEntrada * 0.80).toFixed(2));
+
+              // Cálculos de variação e progressos em 2 estágios
               const ganhoAtualPct = item.precoEntrada > 0
                 ? ((item.precoAtual - item.precoEntrada) / item.precoEntrada) * 100
                 : 0;
 
-              const totalDeltaMeta = item.precoAlvo - item.precoEntrada;
-              const atualDelta = item.precoAtual - item.precoEntrada;
-              const progressoPct = totalDeltaMeta > 0
-                ? Math.min(100, Math.max(0, (atualDelta / totalDeltaMeta) * 100))
-                : (isFinalizada ? 100 : 0);
+              // Estágio 1: Entrada ➔ TP1
+              const deltaTp1 = tp1 - item.precoEntrada;
+              const avancoTp1 = item.precoAtual - item.precoEntrada;
+              const progressoTp1Pct = deltaTp1 > 0
+                ? Math.min(100, Math.max(0, (avancoTp1 / deltaTp1) * 100))
+                : (item.precoAtual >= tp1 ? 100 : 0);
 
-              const distanciaRestante = Math.max(0, item.precoAlvo - item.precoAtual);
-              const upsideRestantePct = item.precoAtual > 0 ? (distanciaRestante / item.precoAtual) * 100 : 0;
+              // Estágio 2: TP1 ➔ TP2
+              const deltaTp2 = tp2 - tp1;
+              const avancoTp2 = item.precoAtual - tp1;
+              const progressoTp2Pct = deltaTp2 > 0
+                ? Math.min(100, Math.max(0, (avancoTp2 / deltaTp2) * 100))
+                : (item.precoAtual >= tp2 ? 100 : 0);
+
+              const upsideRestanteTp1 = Math.max(0, tp1 - item.precoAtual);
+              const upsideTp1Pct = item.precoAtual > 0 ? (upsideRestanteTp1 / item.precoAtual) * 100 : 0;
+
+              const upsideRestanteTp2 = Math.max(0, tp2 - item.precoAtual);
+              const upsideTp2Pct = item.precoAtual > 0 ? (upsideRestanteTp2 / item.precoAtual) * 100 : 0;
+
+              const isInvalidado = item.etapaCiclo === 'INVALIDADO' || item.precoAtual <= precoStop;
+              const isTp1Batido = item.etapaCiclo === 'TP1_BATIDO' || item.precoAtual >= tp1;
+              const isTp2Batido = item.etapaCiclo === 'TP2_BATIDO' || item.precoAtual >= tp2;
 
               return (
                 <div
                   key={item.ticker}
                   className={`bg-white rounded-xl p-3.5 sm:p-4 transition-all border-2 flex flex-col justify-between shadow-2xs ${
-                    isFinalizada
+                    isInvalidado
+                      ? 'border-rose-400 bg-rose-50/20'
+                      : isFinalizada || isTp2Batido
                       ? 'border-emerald-400 bg-gradient-to-r from-emerald-50/30 via-white to-white'
+                      : isTp1Batido
+                      ? 'border-teal-400 bg-teal-50/20'
                       : 'border-slate-200 hover:border-blue-400 hover:shadow-xs'
                   }`}
                 >
                   <div>
-                    {/* Top Header do Card */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
+                    {/* Header do Card com Ticker, Score e Badge da Etapa */}
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-base sm:text-lg font-black font-mono tracking-tight text-slate-900">
                           {item.ticker}
                         </span>
-                        <span className="text-xs font-semibold text-slate-600 truncate max-w-[200px]">
+                        <span className="text-xs font-semibold text-slate-700 truncate max-w-[200px]">
                           {item.nome}
                         </span>
                         <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase border ${
@@ -427,35 +432,58 @@ export function MetasTrackerModal({
                         }`}>
                           {item.mercado}
                         </span>
-                        {item.origem === 'AUTO_ZONA' && (
-                          <span className="text-[9px] font-mono text-slate-400 bg-slate-100 px-1 rounded">
-                            Auto
+                        {item.score !== undefined && (
+                          <span className={`text-[8px] font-black px-1.5 py-0.2 rounded font-mono border ${
+                            item.classe === 'A'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                              : 'bg-blue-50 text-blue-800 border-blue-300'
+                          }`}>
+                            Score {item.score} ({item.classe})
+                          </span>
+                        )}
+                        {item.statusGraham === 'confirmada' && (
+                          <span className="text-[8px] font-black px-1.5 py-0.2 rounded uppercase bg-emerald-700 text-white shadow-2xs">
+                            CONFIRMADA
                           </span>
                         )}
                       </div>
 
-                      {/* Status Badge */}
+                      {/* Badge da Etapa do Ciclo de Vida Graham */}
                       <div className="text-right shrink-0">
-                        {isFinalizada ? (
+                        {isInvalidado ? (
+                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-xs font-extrabold shadow-xs uppercase">
+                            <ShieldAlert className="w-3 h-3" />
+                            <span>Stop Invalidação (-20%)</span>
+                          </div>
+                        ) : isFinalizada || isTp2Batido ? (
                           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-xs font-extrabold shadow-xs uppercase">
                             <Trophy className="w-3.5 h-3.5" />
-                            <span>Objetivo Atingido</span>
+                            <span>TP2 Concluído (+{item.lucroRealizadoPercent || ganhoAtualPct.toFixed(1)}%)</span>
                           </div>
-                        ) : (
+                        ) : isTp1Batido ? (
+                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-700 text-white text-xs font-bold uppercase shadow-2xs">
+                            <Target className="w-3 h-3 text-teal-300" />
+                            <span>TP1 Batido (Realizar 50% / Stop 0x0)</span>
+                          </div>
+                        ) : item.precoAtual > item.precoTetoZona ? (
                           <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-300 text-xs font-bold uppercase">
                             <Clock className="w-3 h-3 text-blue-600 animate-pulse" />
-                            <span>Em Acompanhamento</span>
+                            <span>A Caminho do TP1</span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-extrabold uppercase">
+                            <span>● Na Zona de Compra</span>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Bloco de Preços: Entrada ➔ Atual ➔ Preço Justo Graham */}
-                    <div className="mt-3 grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-center">
+                    {/* Bloco de Preços em 4 Colunas: Entrada/Stop ➔ Atual ➔ TP1 ➔ TP2 */}
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-center">
                       
-                      {/* Preço de Entrada */}
-                      <div className="relative group">
-                        <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">
+                      {/* 1. Preço de Entrada & Stop */}
+                      <div className="relative group bg-white p-1.5 rounded-lg border border-slate-200">
+                        <span className="block text-[8.5px] font-sans font-bold text-slate-500 uppercase">
                           Entrada ({item.dataEntrada})
                         </span>
                         
@@ -501,12 +529,14 @@ export function MetasTrackerModal({
                             )}
                           </div>
                         )}
-                        <span className="text-[9px] text-slate-400 block mt-0.5">Teto: {moedaSimbolo} {item.precoTetoZona.toFixed(2)}</span>
+                        <span className="text-[9px] text-rose-700 font-bold block mt-0.5">
+                          Stop: {moedaSimbolo} {precoStop.toFixed(2)} (-20%)
+                        </span>
                       </div>
 
-                      {/* Cotação Atual / Saída */}
-                      <div>
-                        <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">
+                      {/* 2. Cotação Atual / Saída */}
+                      <div className="bg-white p-1.5 rounded-lg border border-slate-200">
+                        <span className="block text-[8.5px] font-sans font-bold text-slate-500 uppercase">
                           {isFinalizada ? `Saída (${item.dataFinalizacao})` : 'Cotação Atual'}
                         </span>
                         <div className="text-xs sm:text-sm font-extrabold text-slate-900 mt-0.5">
@@ -519,59 +549,91 @@ export function MetasTrackerModal({
                         }`}>
                           {isFinalizada
                             ? `+${item.lucroRealizadoPercent}% Realizado`
-                            : `${ganhoAtualPct >= 0 ? '+' : ''}${ganhoAtualPct.toFixed(1)}% atual`}
+                            : `${ganhoAtualPct >= 0 ? '+' : ''}${ganhoAtualPct.toFixed(1)}% flutuante`}
                         </div>
                       </div>
 
-                      {/* Preço Justo Graham (Meta Alvo) */}
-                      <div>
-                        <span className="block text-[9px] font-sans font-bold text-blue-700 uppercase">
-                          Preço Justo Graham
+                      {/* 3. Alvo TP1 (Preço Justo Conservador) */}
+                      <div className="bg-white p-1.5 rounded-lg border border-slate-200">
+                        <span className="block text-[8.5px] font-sans font-bold text-teal-700 uppercase">
+                          Alvo TP1 (Preço Justo)
                         </span>
-                        <div className="text-xs sm:text-sm font-black text-blue-900 mt-0.5">
-                          {moedaSimbolo} {item.precoAlvo.toFixed(2)}
+                        <div className="text-xs sm:text-sm font-black text-teal-950 mt-0.5">
+                          {moedaSimbolo} {tp1.toFixed(2)}
                         </div>
-                        <div className="text-[10px] font-semibold text-blue-700 mt-0.5">
-                          {isFinalizada ? '100% Alcançado' : `Falta ${moedaSimbolo} ${distanciaRestante.toFixed(2)} (+${upsideRestantePct.toFixed(0)}%)`}
+                        <div className="text-[10px] font-semibold text-teal-700 mt-0.5">
+                          {item.precoAtual >= tp1 ? '✓ 100% Alcançado!' : `Falta ${moedaSimbolo} ${upsideRestanteTp1.toFixed(2)} (+${upsideTp1Pct.toFixed(0)}%)`}
+                        </div>
+                      </div>
+
+                      {/* 4. Alvo TP2 (Estendido / Média Fórmulas) */}
+                      <div className="bg-white p-1.5 rounded-lg border border-slate-200">
+                        <span className="block text-[8.5px] font-sans font-bold text-indigo-700 uppercase">
+                          Alvo TP2 (Estendido)
+                        </span>
+                        <div className="text-xs sm:text-sm font-black text-indigo-950 mt-0.5">
+                          {moedaSimbolo} {tp2.toFixed(2)}
+                        </div>
+                        <div className="text-[10px] font-semibold text-indigo-700 mt-0.5">
+                          {item.precoAtual >= tp2 ? '✓ 100% Alcançado!' : `Falta ${moedaSimbolo} ${upsideRestanteTp2.toFixed(2)} (+${upsideTp2Pct.toFixed(0)}%)`}
                         </div>
                       </div>
 
                     </div>
 
-                    {/* Barra de Progresso Dinâmica até o Preço Justo de Graham */}
-                    <div className="mt-3 space-y-1">
-                      <div className="flex items-center justify-between text-xs font-semibold">
-                        <span className="text-slate-600 flex items-center gap-1">
-                          <Activity className="w-3.5 h-3.5 text-blue-600" />
-                          <span>Progresso até a Meta de Valor:</span>
-                        </span>
-                        <span className="font-mono font-bold text-slate-900">
-                          {progressoPct.toFixed(0)}%
-                        </span>
-                      </div>
+                    {/* Progressos em 2 Réguas Visuais (TP1 e TP2) */}
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       
-                      <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden p-0.5 shadow-inner">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            isFinalizada
-                              ? 'bg-gradient-to-r from-emerald-500 to-emerald-600'
-                              : 'bg-gradient-to-r from-blue-600 to-emerald-500'
-                          }`}
-                          style={{ width: `${progressoPct}%` }}
-                        />
+                      {/* Régua Estágio 1: Entrada ➔ TP1 */}
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                        <div className="flex items-center justify-between font-semibold">
+                          <span className="text-slate-700 flex items-center gap-1 text-[11px]">
+                            <Target className="w-3 h-3 text-teal-600" />
+                            <span>Estágio 1 (Entrada ➔ TP1):</span>
+                          </span>
+                          <span className={`font-mono font-bold ${progressoTp1Pct >= 100 ? 'text-teal-700' : 'text-slate-800'}`}>
+                            {progressoTp1Pct >= 100 ? '✓ Concluído' : `${progressoTp1Pct.toFixed(0)}%`}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                          <div
+                            className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-blue-600 to-teal-500"
+                            style={{ width: `${progressoTp1Pct}%` }}
+                          />
+                        </div>
                       </div>
+
+                      {/* Régua Estágio 2: TP1 ➔ TP2 */}
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                        <div className="flex items-center justify-between font-semibold">
+                          <span className="text-slate-700 flex items-center gap-1 text-[11px]">
+                            <Flame className="w-3 h-3 text-indigo-600" />
+                            <span>Estágio 2 (TP1 ➔ TP2):</span>
+                          </span>
+                          <span className={`font-mono font-bold ${progressoTp2Pct >= 100 ? 'text-emerald-700' : 'text-slate-800'}`}>
+                            {progressoTp2Pct >= 100 ? '✓ Concluído' : `${progressoTp2Pct.toFixed(0)}%`}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                          <div
+                            className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-teal-500 to-indigo-600"
+                            style={{ width: `${progressoTp2Pct}%` }}
+                          />
+                        </div>
+                      </div>
+
                     </div>
 
-                    {/* Nota de Acompanhamento */}
+                    {/* Nota de Acompanhamento / Diretriz Tática */}
                     {item.nota && (
-                      <p className="mt-2 text-xs text-slate-600 bg-white/70 p-2 rounded-lg border border-slate-200 leading-relaxed font-sans">
-                        💡 {item.nota}
+                      <p className="mt-2.5 text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-300 leading-relaxed font-sans shadow-2xs">
+                        💡 <strong>Diretriz Tática:</strong> {item.nota}
                       </p>
                     )}
                   </div>
 
                   {/* Ações Inferiores do Card */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap text-xs">
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between gap-2 flex-wrap text-xs">
                     <div className="flex items-center gap-2 text-slate-500 text-[11px] font-mono">
                       <span>{item.diasDecorridos ? `${item.diasDecorridos} dias em carteira` : 'Recente'}</span>
                     </div>
@@ -582,43 +644,42 @@ export function MetasTrackerModal({
                           onSelectTickerForValuation(item.ticker);
                           onClose();
                         }}
-                        className="px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Abrir no terminal de valuation e balanço auditado"
+                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg border border-blue-300 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                        title="Ver no Terminal de Valuation"
                       >
-                        <span>Valuation</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
+                        <span>Abrir Valuation</span>
+                        <ChevronRight className="w-3 h-3" />
                       </button>
 
                       {isFinalizada ? (
                         <button
-                          onClick={() => handleReopen(item)}
-                          className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Reiniciar novo ciclo de monitoramento para este ativo"
+                          onClick={() => handleReopen(item.ticker)}
+                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg border border-slate-300 transition-colors cursor-pointer flex items-center gap-1"
+                          title="Reabrir ciclo de metas"
                         >
-                          <RotateCcw className="w-3 h-3 text-slate-600" />
-                          <span>Reabrir Ciclo</span>
+                          <RotateCcw className="w-3 h-3 text-slate-500" />
+                          <span>Reabrir</span>
                         </button>
                       ) : (
                         <button
                           onClick={() => handleFinalize(item.ticker)}
-                          className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Marcar como finalizada com o preço atual de mercado"
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                          title="Finalizar posição com cotação atual"
                         >
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Finalizar Meta</span>
+                          <Check className="w-3 h-3" />
+                          <span>Finalizar Posição</span>
                         </button>
                       )}
 
                       <button
                         onClick={() => handleRemove(item.ticker)}
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                         title="Remover da esteira"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
-
                 </div>
               );
             })
@@ -626,17 +687,17 @@ export function MetasTrackerModal({
         </div>
 
         {/* ======================================================== */}
-        {/* FOOTER DO MODAL                                          */}
+        {/* MODAL FOOTER                                             */}
         {/* ======================================================== */}
-        <div className="p-2.5 sm:p-3 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] sm:pb-3 bg-white border-t border-slate-300 flex items-center justify-between text-[11px] sm:text-xs text-slate-500 shrink-0">
-          <div className="flex items-center gap-1.5 truncate mr-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-            <span className="truncate">Rastreamento ativo com cotações em tempo real e varredura diária das 19h</span>
+        <div className="p-3 border-t border-slate-200 bg-white flex items-center justify-between text-xs text-slate-600 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-bold text-slate-900">{trackedList.length}</span>
+            <span>ativos no ciclo de vida</span>
           </div>
 
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition-colors cursor-pointer shrink-0 shadow-xs"
+            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
           >
             Fechar
           </button>
