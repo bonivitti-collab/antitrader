@@ -2573,8 +2573,8 @@ function calcularZonaPreco(op: {
       {/* MODAL: AUDITORIA OPERACIONAL & DIAGNÓSTICOS EM TEMPO REAL  */}
       {/* ========================================================= */}
       {modalScanInfoAberto && (
-        <div className="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full border-2 border-slate-300 overflow-hidden max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-2 sm:p-4" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top, 0.75rem))", paddingBottom: "max(1.75rem, env(safe-area-inset-bottom, 1.75rem))" }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full border-2 border-slate-300 overflow-hidden max-h-[85dvh] sm:max-h-[90vh] flex flex-col">
             
             {/* Header do Modal */}
             <div className="p-3.5 border-b border-slate-300 bg-slate-900 text-white flex items-center justify-between shrink-0">

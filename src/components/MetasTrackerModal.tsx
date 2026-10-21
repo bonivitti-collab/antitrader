@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Copy,
   ChevronRight,
+  ChevronLeft,
   DollarSign,
   Activity,
   Percent,
@@ -146,8 +147,16 @@ export function MetasTrackerModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-1 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-5xl rounded-xl sm:rounded-2xl shadow-2xl border border-slate-300 flex flex-col max-h-[96vh] sm:max-h-[92vh] overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4 animate-in fade-in duration-200"
+      style={{
+        paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))',
+        paddingBottom: 'max(1.75rem, env(safe-area-inset-bottom, 1.75rem))',
+        paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0.5rem))',
+        paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0.5rem))',
+      }}
+    >
+      <div className="bg-white w-full max-w-5xl rounded-xl sm:rounded-2xl shadow-2xl border border-slate-300 flex flex-col max-h-[84dvh] sm:max-h-[90vh] overflow-hidden">
         
         {/* ======================================================== */}
         {/* MODAL HEADER                                             */}
@@ -767,17 +776,19 @@ export function MetasTrackerModal({
         {/* ======================================================== */}
         {/* MODAL FOOTER                                             */}
         {/* ======================================================== */}
-        <div className="p-3 border-t border-slate-200 bg-white flex items-center justify-between text-xs text-slate-600 shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="py-2.5 px-3.5 sm:p-3 border-t border-slate-200 bg-white flex items-center justify-between text-xs text-slate-600 shrink-0">
+          <div className="flex items-center gap-1.5">
             <span className="font-mono font-bold text-slate-900">{trackedList.length}</span>
-            <span>ativos no ciclo de vida</span>
+            <span className="text-[11px] sm:text-xs">ativos no ciclo de vida</span>
           </div>
 
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold rounded-lg transition-colors cursor-pointer shadow-xs text-xs flex items-center gap-1.5"
+            title="Voltar / Fechar"
           >
-            Fechar
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span>Voltar / Fechar</span>
           </button>
         </div>
 
