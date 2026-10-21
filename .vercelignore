@@ -1,0 +1,8 @@
+api/
+server.ts
+server.mjs
+tests/
+.github/
+DEPLOY.md
+railway.toml
+.env*

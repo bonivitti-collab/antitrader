@@ -1,0 +1,65 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Jest, Vitest and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: antitrader
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: antitrader_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U antitrader -d antitrader_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: ******localhost:5432/antitrader_test
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@v2.0.2
+        with:
+          bun-version: "1.4.3"
+      - run: bun install --frozen-lockfile
+      - name: Verify PostgreSQL and Redis
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          REDIS_CONTAINER: ${{ job.services.redis.id }}
+        run: |
+          docker exec "$POSTGRES_CONTAINER" psql -U antitrader -d antitrader_test -v ON_ERROR_STOP=1 -c 'SELECT 1'
+          test "$(docker exec "$REDIS_CONTAINER" redis-cli ping)" = PONG
+      - name: Backend (Jest)
+        run: bun run test:backend
+      - name: Frontend (Vitest)
+        run: bun run test:frontend
+      - name: Production build
+        run: bun run build

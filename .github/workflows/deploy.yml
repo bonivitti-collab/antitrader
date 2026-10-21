@@ -1,0 +1,142 @@
+name: Production CI/CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    uses: ./.github/workflows/test.yml
+
+  quality:
+    uses: ./.github/workflows/lint.yml
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+  backend:
+    name: Deploy Railway
+    if: github.ref == 'refs/heads/main'
+    needs: [tests, quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.RAILWAY_PUBLIC_URL }}
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      RAILWAY_SERVICE_ID: ${{ vars.RAILWAY_SERVICE_ID }}
+      RAILWAY_ENVIRONMENT_ID: ${{ vars.RAILWAY_ENVIRONMENT_ID }}
+      RAILWAY_PUBLIC_URL: ${{ vars.RAILWAY_PUBLIC_URL }}
+    steps:
+      - uses: actions/checkout@v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: "24"
+      - name: Validate Railway configuration
+        run: |
+          : "${RAILWAY_TOKEN:?Configure RAILWAY_TOKEN}"
+          : "${RAILWAY_PROJECT_ID:?Configure RAILWAY_PROJECT_ID}"
+          : "${RAILWAY_SERVICE_ID:?Configure RAILWAY_SERVICE_ID}"
+          : "${RAILWAY_ENVIRONMENT_ID:?Configure RAILWAY_ENVIRONMENT_ID}"
+          node --input-type=module -e '
+            const url = new URL(process.env.RAILWAY_PUBLIC_URL);
+            if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
+              throw new Error("RAILWAY_PUBLIC_URL must be an HTTPS origin");
+            }
+          '
+      - name: Deploy backend and wait for build
+        run: >-
+          npx --yes @railway/cli@5.71.0 up --ci
+          --project "$RAILWAY_PROJECT_ID"
+          --service "$RAILWAY_SERVICE_ID"
+          --environment "$RAILWAY_ENVIRONMENT_ID"
+      - name: Check public API
+        run: |
+          curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 10 \
+            "${RAILWAY_PUBLIC_URL%/}/api/health" | jq -e '.status == "ok"'
+
+  frontend:
+    name: Deploy Vercel
+    if: github.ref == 'refs/heads/main'
+    needs: [tests, quality, backend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.VERCEL_PUBLIC_URL }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_PUBLIC_URL: ${{ vars.VERCEL_PUBLIC_URL }}
+      RAILWAY_PUBLIC_URL: ${{ vars.RAILWAY_PUBLIC_URL }}
+    steps:
+      - uses: actions/checkout@v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@v2.0.2
+        with:
+          bun-version: "1.4.3"
+      - name: Validate Vercel configuration and set API proxy
+        run: |
+          : "${VERCEL_TOKEN:?Configure VERCEL_TOKEN}"
+          : "${VERCEL_ORG_ID:?Configure VERCEL_ORG_ID}"
+          : "${VERCEL_PROJECT_ID:?Configure VERCEL_PROJECT_ID}"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const api = new URL(process.env.RAILWAY_PUBLIC_URL);
+          const frontend = new URL(process.env.VERCEL_PUBLIC_URL);
+          for (const url of [api, frontend]) {
+            if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+              throw new Error('Public URLs must be HTTPS origins');
+            }
+          }
+          const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+          config.rewrites[0].destination = `${api.origin}/api/$1`;
+          fs.writeFileSync('vercel.json', JSON.stringify(config, null, 2));
+          NODE
+      - name: Pull Vercel production settings
+        run: npx --yes vercel@65.0.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build frontend
+        run: npx --yes vercel@65.0.0 build --prod --token="$VERCEL_TOKEN"
+      - name: Publish frontend
+        run: npx --yes vercel@65.0.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+      - name: Verify stable URL and API proxy
+        run: |
+          curl --fail --silent --show-error --retry 6 --retry-all-errors --retry-delay 10 \
+            "${VERCEL_PUBLIC_URL%/}/" --output /dev/null
+          curl --fail --silent --show-error --retry 6 --retry-all-errors --retry-delay 10 \
+            "${VERCEL_PUBLIC_URL%/}/api/health" | jq -e '.status == "ok"'
+      - name: Deployment summary
+        run: |
+          printf '### Produção\n- Frontend: %s\n- Backend: %s\n- Commit: `%s`\n' \
+            "$VERCEL_PUBLIC_URL" "$RAILWAY_PUBLIC_URL" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+  failure:
+    name: Report failure
+    if: always() && contains(needs.*.result, 'failure')
+    needs: [tests, quality, backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Mark failed pipeline
+        run: |
+          echo "::error::CI/CD falhou. Consulte os jobs nesta execução; etapas dependentes foram bloqueadas."
+          echo "### CI/CD falhou — consulte os logs dos jobs. Nenhum rollback automático é executado." >> "$GITHUB_STEP_SUMMARY"
+          exit 1

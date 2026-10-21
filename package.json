@@ -6,10 +6,15 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
+    "build:server": "esbuild server.ts --bundle --platform=node --format=esm --packages=external --outfile=server.mjs",
     "preview": "vite preview",
-    "start": "node server.ts",
+    "start": "node server.mjs",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "bun run test:backend && bun run test:frontend",
+    "test:backend": "bun run build:server && jest --config jest.config.cjs --runInBand",
+    "test:frontend": "vitest run --config vitest.config.ts",
+    "format:check": "prettier --check .github/workflows/*.yml tests jest.config.cjs vitest.config.ts vercel.json DEPLOY.md package.json"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -30,10 +35,13 @@
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "jest": "30.5.2",
+    "prettier": "3.9.10",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",
-    "vite-plugin-pwa": "^2.0.0"
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "5.0.5"
   }
 }

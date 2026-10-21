@@ -34,6 +34,10 @@ const port = Number(process.env.PORT || 3000);
 
 app.use(express.json());
 
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Gerenciamento de Chaves de API (Primária Gratuita + Backup com Failover Automático)
 function getGenAIClients(customKey?: string) {
   if (IS_FROZEN) return [];
@@ -66,10 +70,6 @@ function getGenAIClients(customKey?: string) {
     }),
   }));
 }
-
-// Fallback padrão com chave de ambiente
-const defaultClients = getGenAIClients();
-const ai = defaultClients[0]?.client || new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 // Interface de Detalhes da Cotação em Tempo Real
 export interface LiveQuoteDetails {
@@ -1387,8 +1387,9 @@ async function startServer() {
     });
   }
 
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`Antigravity Value Engine running on port ${port}`);
+  const server = app.listen(port, '0.0.0.0', () => {
+    const address = server.address();
+    console.log(`Antigravity Value Engine running on port ${typeof address === 'object' && address ? address.port : port}`);
   });
 }
 

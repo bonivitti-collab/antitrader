@@ -1,0 +1,10 @@
+[build]
+builder = "RAILPACK"
+buildCommand = "bun install --frozen-lockfile && bun run build && bun run build:server"
+
+[deploy]
+startCommand = "bun run start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
