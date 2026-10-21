@@ -171,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             full_name: name || email.split('@')[0],
           },
+          emailRedirectTo: `${window.location.origin}/app`,
         },
       });
 
