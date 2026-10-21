@@ -43,6 +43,9 @@ import {
 } from './services/trackerService';
 import { MetasTrackerModal } from './components/MetasTrackerModal';
 import { LandingPage } from './components/LandingPage';
+import { AuthModal } from './components/AuthModal';
+import { UserProfileMenu } from './components/UserProfileMenu';
+import { useAuth } from './contexts/AuthContext';
 import { searchUniverse, findInUniverse, getUniverseStats, type UniverseAsset } from './data/universe';
 
 
@@ -1005,6 +1008,9 @@ function calcularZonaPreco(op: {
     );
   }, [buscaTicker, oportunidades]);
 
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('signup');
+
   const [currentRoute, setCurrentRoute] = useState<'landing' | 'app'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
@@ -1040,7 +1046,26 @@ function calcularZonaPreco(op: {
   };
 
   if (currentRoute === 'landing') {
-    return <LandingPage onEnterApp={() => navigateTo('app')} />;
+    return (
+      <>
+        <LandingPage
+          onEnterApp={() => navigateTo('app')}
+          onOpenAuth={(mode) => {
+            setAuthModalMode(mode);
+            setAuthModalOpen(true);
+          }}
+        />
+        <AuthModal
+          isOpen={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          initialMode={authModalMode}
+          onSuccess={() => {
+            setAuthModalOpen(false);
+            navigateTo('app');
+          }}
+        />
+      </>
+    );
   }
 
   return (
@@ -1201,6 +1226,17 @@ function calcularZonaPreco(op: {
               <PanelRight className="w-3.5 h-3.5 text-blue-600" />
               <span className="text-[10px] hidden xl:inline">IA</span>
             </button>
+          </div>
+
+          {/* Menu de Perfil / Acesso do Usuário */}
+          <div className="border-l border-slate-300 pl-1.5 ml-0.5">
+            <UserProfileMenu
+              onOpenAuth={(mode) => {
+                setAuthModalMode(mode);
+                setAuthModalOpen(true);
+              }}
+              onNavigateToPlans={() => navigateTo('landing')}
+            />
           </div>
         </div>
       </header>
@@ -3001,6 +3037,14 @@ function calcularZonaPreco(op: {
         onSelectTickerForValuation={(t) => {
           carregarTickerPorSimbolo(t);
         }}
+      />
+
+      {/* Modal de Autenticação / 7 Dias Grátis */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialMode={authModalMode}
+        onSuccess={() => setAuthModalOpen(false)}
       />
 
     </div>

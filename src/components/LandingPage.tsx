@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import {
   ShieldCheck,
   TrendingUp,
@@ -28,15 +29,28 @@ import {
   FileSearch,
   Scale,
   Percent,
+  User,
 } from 'lucide-react';
 
 interface LandingPageProps {
   onEnterApp: () => void;
+  onOpenAuth?: (mode: 'login' | 'signup') => void;
 }
 
-export function LandingPage({ onEnterApp }: LandingPageProps) {
+export function LandingPage({ onEnterApp, onOpenAuth }: LandingPageProps) {
+  const { user } = useAuth();
   const [planoAnual, setPlanoAnual] = useState(true);
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
+
+  const handleOpenAuth = (mode: 'login' | 'signup') => {
+    if (user) {
+      onEnterApp();
+    } else if (onOpenAuth) {
+      onOpenAuth(mode);
+    } else {
+      onEnterApp();
+    }
+  };
 
   const faqs = [
     {
@@ -97,21 +111,33 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
           <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
         </nav>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={onEnterApp}
-            className="px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
-          >
-            <span>Ver Demonstração</span>
-            <ExternalLink className="w-3 h-3 text-slate-400" />
-          </button>
+        <div className="flex items-center gap-2 sm:gap-3">
+          {user ? (
+            <button
+              onClick={onEnterApp}
+              className="px-3.5 sm:px-4 py-1.5 rounded-lg text-xs font-black text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 shadow-md shadow-blue-600/25 transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <User className="w-3.5 h-3.5 text-white" />
+              <span>Meu Terminal</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => handleOpenAuth('login')}
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer"
+              >
+                Entrar
+              </button>
 
-          <a
-            href="#precos"
-            className="px-3.5 sm:px-4 py-1.5 rounded-lg text-xs font-extrabold text-white bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 shadow-md shadow-blue-600/20 transition-all cursor-pointer active:scale-95"
-          >
-            Testar 7 Dias Grátis
-          </a>
+              <button
+                onClick={() => handleOpenAuth('signup')}
+                className="px-3.5 sm:px-4 py-1.5 rounded-lg text-xs font-extrabold text-white bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 shadow-md shadow-blue-600/20 transition-all cursor-pointer active:scale-95"
+              >
+                Testar 7 Dias Grátis
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -145,13 +171,13 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
 
         {/* CTAs do Hero */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-          <a
-            href="#precos"
+          <button
+            onClick={() => handleOpenAuth('signup')}
             className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-black text-sm sm:text-base text-white bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 shadow-xl shadow-blue-600/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2"
           >
             <span>Começar Teste de 7 Dias Grátis</span>
             <ArrowRight className="w-4 h-4" />
-          </a>
+          </button>
 
           <button
             onClick={onEnterApp}
@@ -689,7 +715,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
               </div>
 
               <button
-                onClick={onEnterApp}
+                onClick={() => handleOpenAuth('signup')}
                 className="w-full py-3 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 transition-all cursor-pointer shadow-xs active:scale-95"
               >
                 Experimentar 7 Dias Grátis
@@ -744,7 +770,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
               </div>
 
               <button
-                onClick={onEnterApp}
+                onClick={() => handleOpenAuth('signup')}
                 className="w-full py-3.5 rounded-xl font-black text-sm bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white shadow-lg shadow-blue-600/30 transition-all cursor-pointer active:scale-95"
               >
                 Garantir 7 Dias Grátis + Desconto Anual
