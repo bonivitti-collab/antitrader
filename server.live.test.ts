@@ -14,7 +14,7 @@ test('fails over from Brapi to Yahoo, caches results and serves stale cache on o
   t.mock.method(globalThis, 'fetch', async (input: string | URL) => {
     const url = String(input);
     requests.push(url);
-    if (offline || url.startsWith('https://brapi.dev/')) {
+    if (offline || new URL(url).hostname === 'brapi.dev') {
       return new Response('{}', { status: 503 });
     }
     return Response.json({
@@ -26,8 +26,8 @@ test('fails over from Brapi to Yahoo, caches results and serves stale cache on o
   assert.equal(quote?.price, 35);
   assert.equal(quote?.currency, 'BRL');
   assert.match(quote?.source ?? '', /Yahoo Finance/);
-  assert.ok(requests[0].startsWith('https://brapi.dev/'));
-  assert.ok(requests[1].includes('query1.finance.yahoo.com'));
+  assert.equal(new URL(requests[0]).hostname, 'brapi.dev');
+  assert.equal(new URL(requests[1]).hostname, 'query1.finance.yahoo.com');
 
   requests.length = 0;
   assert.deepEqual(await getLiveQuoteDetails('PETR4', 'B3'), quote);
