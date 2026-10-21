@@ -2,8 +2,8 @@
   "git": {
     "deploymentEnabled": false
   },
-  "buildCommand": "bun run build",
-  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
   "outputDirectory": "dist",
   "rewrites": [
     {
