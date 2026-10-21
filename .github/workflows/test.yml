@@ -37,7 +37,9 @@ jobs:
           --health-retries 5
     env:
       NODE_ENV: test
-      DATABASE_URL: ******localhost:5432/antitrader_test
+      DATABASE_URL: postgresql://localhost:5432/antitrader_test
+      PGUSER: antitrader
+      PGPASSWORD: ci-only-password
       REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4.3.1

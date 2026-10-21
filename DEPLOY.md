@@ -168,7 +168,8 @@ Se quiser preparar o banco gerenciado para uma implementação futura:
    ou TLS e não exponha a porta publicamente.
 
 O workflow de testes inicia **PostgreSQL 16 e Redis 7 efêmeros**, verifica `SELECT 1`
-e `PING`, e disponibiliza `DATABASE_URL`/`REDIS_URL` aos testes. Isso verifica a
+e `PING`, e disponibiliza `DATABASE_URL`/`REDIS_URL` aos testes, com autenticação PostgreSQL
+separada em `PGUSER`/`PGPASSWORD` (para clientes que suportam essas variáveis). Isso verifica a
 infraestrutura do CI, **não integração da aplicação com esses serviços**.
 Credenciais de CI são fictícias, isoladas e não reutilizáveis em produção.
 
