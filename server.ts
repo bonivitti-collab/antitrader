@@ -491,8 +491,7 @@ function scheduleDailyScanTimer() {
     clearTimeout(scanTimerHandle);
     scanTimerHandle = null;
   }
-  if (IS_FROZEN) {
-    console.log('[Universe Scanner] PWA CONGELADO: Agendador de varredura diária das 19:00 BRT e buscas automáticas desativados.');
+  if (IS_FROZEN || process.env.NODE_ENV === 'test') {
     return;
   }
   const nextTarget = calculateNextScanTarget();
