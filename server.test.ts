@@ -6,7 +6,11 @@ process.env.LIVE_QUOTE_DATA_ENABLED = 'false';
 delete process.env.GEMINI_API_KEY;
 delete process.env.GEMINI_API_KEY_BACKUP;
 
-const { default: app, getLiveQuoteDetails } = await import('./server.ts');
+const { default: app, getLiveQuoteDetails, IS_FROZEN } = await import('./server.ts');
+
+test('application is operational by default', () => {
+  assert.equal(IS_FROZEN, false);
+});
 
 test('disabled market data never calls providers, even without a local snapshot', async () => {
   const originalFetch = globalThis.fetch;
@@ -35,8 +39,31 @@ test('health check works without optional provider or Gemini keys', async () => 
     assert.equal(response.status, 200);
     const health = await response.json();
     assert.equal(health.status, 'FROZEN');
+    assert.equal(health.applicationStatus, 'ACTIVE');
+    assert.equal(health.isFrozen, false);
     assert.equal(health.marketDataEnabled, false);
     assert.ok(health.providers);
+
+    const scanStatusResponse = await fetch(`http://127.0.0.1:${address.port}/api/scan-status`);
+    const scanStatus = await scanStatusResponse.json();
+    assert.equal(scanStatus.isFrozen, false);
+    assert.equal(scanStatus.status, 'ATIVO');
+    assert.ok(scanStatus.nextScanTime > Date.now());
+
+    const scanResponse = await fetch(`http://127.0.0.1:${address.port}/api/scan-now`, { method: 'POST' });
+    const scan = await scanResponse.json();
+    assert.equal(scanResponse.status, 200);
+    assert.equal(scan.success, true);
+
+    const chatResponse = await fetch(`http://127.0.0.1:${address.port}/api/gemini/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Explique margem de segurança' }),
+    });
+    const chat = await chatResponse.json();
+    assert.equal(chatResponse.status, 200);
+    assert.ok(chat.reply);
+    assert.doesNotMatch(chat.usedSource, /Congelado/);
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => error ? reject(error) : resolve());

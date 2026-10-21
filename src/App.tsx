@@ -564,7 +564,7 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
     }
   };
 
-  // Disparo manual de varredura geral (Bloqueado no modo congelado)
+  // Disparo manual de varredura geral (bloqueado apenas quando a aplicação estiver congelada)
   const dispararVarreduraManual = async () => {
     if (executandoScanManual || scanStatus?.isFrozen) {
       setFeedbackScan('Operações congeladas: varreduras automáticas e buscas diárias estão desativadas.');
@@ -603,11 +603,11 @@ A **Peneira de Oportunidades da B3 e do S&P 500** está ativa e calibrada estrit
   };
 
   useEffect(() => {
-    // Carrega o snapshot inicial congelado uma única vez ao iniciar
+    // Carrega oportunidades e status do servidor ao iniciar
     fetchOportunidades();
     fetchScanStatus();
 
-    // MODO CONGELADO: Sem polling cíclico nem temporizadores de busca em segundo plano
+    // As atualizações automáticas são executadas pelo backend; a interface não faz polling cíclico.
   }, []);
 
   // O relógio regressivo agora é processado exclusivamente pelo componente isolado <CountdownDisplay />

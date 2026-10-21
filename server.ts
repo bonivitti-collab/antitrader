@@ -20,12 +20,11 @@ import {
 export { OPORTUNIDADES_SETUP };
 
 // =========================================================================
-// MODO CONGELADO / STANDBY (PWA CONGELADO PELO USUÁRIO)
-// Interrompe qualquer busca diária, varredura das 19:00 BRT ou polling background.
+// Controle de operação da aplicação. Use congelamento apenas por configuração explícita.
 // =========================================================================
 dotenv.config();
 
-export const IS_FROZEN = true;
+export const IS_FROZEN = process.env.APP_FROZEN === 'true';
 export const LIVE_QUOTE_DATA_ENABLED = process.env.LIVE_QUOTE_DATA_ENABLED !== 'false';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -505,8 +504,8 @@ function scheduleDailyScanTimer() {
   }, msRemaining);
 }
 
-// Inicia o agendador no carregamento do servidor (apenas se não estiver na Vercel e não estiver congelado)
-if (!process.env.VERCEL && !IS_FROZEN) {
+// Inicia o agendador apenas em servidores persistentes, fora de ambientes congelados e testes.
+if (!process.env.VERCEL && !IS_FROZEN && process.env.NODE_ENV !== 'test') {
   scheduleDailyScanTimer();
 }
 
