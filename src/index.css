@@ -47,3 +47,12 @@ button, [role="button"], a, input, select, .cursor-pointer {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
 }
+
+/* Ocultar barra de rolagem mantendo a navegação por toque e arrasto fluida */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
