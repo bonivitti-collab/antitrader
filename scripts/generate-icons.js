@@ -1,0 +1,118 @@
+import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
+
+const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient: Deep institutional dark navy/slate -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="50%" stop-color="#050811" />
+      <stop offset="100%" stop-color="#02040a" />
+    </linearGradient>
+
+    <!-- Border Glow: Neon financial tech border -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="50%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+
+    <!-- Candlestick 1: Blue Value Base -->
+    <linearGradient id="candle1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- Candlestick 2: Teal Graham Zone -->
+    <linearGradient id="candle2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+
+    <!-- Candlestick 3: Emerald Breakout (Target TP) -->
+    <linearGradient id="candle3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+
+    <!-- Dynamic Trend Ray -->
+    <linearGradient id="trendRay" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#22d3ee" />
+      <stop offset="100%" stop-color="#4ade80" />
+    </linearGradient>
+
+    <!-- Neon Glow Filter -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Squircle Base / App Tile -->
+  <rect x="16" y="16" width="480" height="480" rx="104" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="12" />
+
+  <!-- Subtle Financial Gridlines -->
+  <line x1="70" y1="180" x2="442" y2="180" stroke="#334155" stroke-width="2" stroke-dasharray="6 6" stroke-opacity="0.35" />
+  <line x1="70" y1="280" x2="442" y2="280" stroke="#334155" stroke-width="2" stroke-dasharray="6 6" stroke-opacity="0.35" />
+  <line x1="70" y1="380" x2="442" y2="380" stroke="#334155" stroke-width="2" stroke-dasharray="6 6" stroke-opacity="0.5" />
+
+  <!-- ========================================== -->
+  <!-- CANDLESTICK 1 (Left: Value Foundation)      -->
+  <!-- ========================================== -->
+  <!-- Wick -->
+  <line x1="145" y1="230" x2="145" y2="390" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" />
+  <!-- Body -->
+  <rect x="120" y="270" width="50" height="90" rx="8" fill="url(#candle1)" />
+
+  <!-- ========================================== -->
+  <!-- CANDLESTICK 2 (Center: Graham Buy Zone)     -->
+  <!-- ========================================== -->
+  <!-- Wick -->
+  <line x1="256" y1="160" x2="256" y2="360" stroke="#2dd4bf" stroke-width="6" stroke-linecap="round" />
+  <!-- Body -->
+  <rect x="231" y="195" width="50" height="115" rx="8" fill="url(#candle2)" />
+
+  <!-- ========================================== -->
+  <!-- CANDLESTICK 3 (Right: Target Breakout TP)   -->
+  <!-- ========================================== -->
+  <!-- Wick -->
+  <line x1="367" y1="85" x2="367" y2="310" stroke="#4ade80" stroke-width="7" stroke-linecap="round" />
+  <!-- Body -->
+  <rect x="342" y="120" width="50" height="135" rx="8" fill="url(#candle3)" filter="url(#neonGlow)" />
+
+  <!-- ========================================== -->
+  <!-- EXPONENTIAL UPWARD TREND LINE & ARROWHEAD  -->
+  <!-- ========================================== -->
+  <path d="M 90 350 Q 210 320, 390 108" fill="none" stroke="url(#trendRay)" stroke-width="14" stroke-linecap="round" filter="url(#neonGlow)" />
+  <polygon points="412,88 372,102 394,138" fill="#4ade80" filter="url(#neonGlow)" />
+
+  <!-- Target Reticle at the Apex Target -->
+  <circle cx="406" cy="94" r="26" fill="none" stroke="#4ade80" stroke-width="3" stroke-dasharray="5 4" stroke-opacity="0.85" />
+</svg>`;
+
+async function generateAssets() {
+  const publicDir = path.resolve('public');
+  
+  // Save SVG
+  fs.writeFileSync(path.join(publicDir, 'icon.svg'), svgContent, 'utf8');
+  fs.writeFileSync(path.join(publicDir, 'favicon.svg'), svgContent, 'utf8');
+  console.log('✓ SVG icons updated');
+
+  const svgBuffer = Buffer.from(svgContent);
+
+  // Generate PNGs
+  await sharp(svgBuffer).resize(512, 512).png().toFile(path.join(publicDir, 'pwa-512x512.png'));
+  await sharp(svgBuffer).resize(512, 512).png().toFile(path.join(publicDir, 'pwa-maskable-512x512.png'));
+  await sharp(svgBuffer).resize(192, 192).png().toFile(path.join(publicDir, 'pwa-192x192.png'));
+  await sharp(svgBuffer).resize(180, 180).png().toFile(path.join(publicDir, 'apple-touch-icon.png'));
+  await sharp(svgBuffer).resize(48, 48).png().toFile(path.join(publicDir, 'favicon.png'));
+
+  console.log('✓ All PNGs generated successfully (512x512, 192x192, apple-touch-icon, favicon.png)!');
+}
+
+generateAssets().catch(console.error);

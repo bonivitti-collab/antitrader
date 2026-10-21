@@ -32,6 +32,7 @@ import {
   PanelRight,
   GripVertical,
   ChevronLeft,
+  ArrowLeft,
   Snowflake,
 } from 'lucide-react';
 import { TrackedOpportunity } from './types/tracker';
@@ -41,6 +42,7 @@ import {
   calculateTrackerStats,
 } from './services/trackerService';
 import { MetasTrackerModal } from './components/MetasTrackerModal';
+import { LandingPage } from './components/LandingPage';
 import { searchUniverse, findInUniverse, getUniverseStats, type UniverseAsset } from './data/universe';
 
 
@@ -987,6 +989,44 @@ function calcularZonaPreco(op: {
     );
   }, [buscaTicker, oportunidades]);
 
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'app'>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      const isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as any).standalone === true;
+      if (path.startsWith('/app') || path.startsWith('/terminal') || isStandalone) {
+        return 'app';
+      }
+    }
+    return 'landing';
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path.startsWith('/app') || path.startsWith('/terminal')) {
+        setCurrentRoute('app');
+      } else {
+        setCurrentRoute('landing');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateTo = (route: 'landing' | 'app') => {
+    setCurrentRoute(route);
+    const targetPath = route === 'app' ? '/app' : '/';
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, '', targetPath);
+    }
+  };
+
+  if (currentRoute === 'landing') {
+    return <LandingPage onEnterApp={() => navigateTo('app')} />;
+  }
+
   return (
     <div className="h-full h-dvh w-full max-w-full bg-white text-[#1e293b] font-sans flex flex-col overflow-hidden select-none">
       
@@ -1039,6 +1079,14 @@ function calcularZonaPreco(op: {
             </div>
           </div>
 
+          <button
+            onClick={() => navigateTo('landing')}
+            className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 px-2 py-1 rounded border border-slate-200 transition-colors cursor-pointer shadow-2xs"
+            title="Ver Página Inicial & Planos de Assinatura"
+          >
+            <ArrowLeft className="w-3 h-3 text-slate-400" />
+            <span className="hidden sm:inline">Página Inicial</span>
+          </button>
         </div>
 
         {/* Controles de Ação do Header - Responsivos e sem transbordo */}
