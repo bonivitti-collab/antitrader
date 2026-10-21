@@ -1,6 +1,0 @@
-{
-  "name": "Calculadora de Zona de Compra",
-  "description": "Calculadora de Preço Justo e Zona de Compra com Margem de Segurança baseada nas fórmulas de Benjamin Graham e Warren Buffett.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
