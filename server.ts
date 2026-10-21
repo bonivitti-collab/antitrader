@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
 import { OPORTUNIDADES_SETUP, type Oportunidade } from './src/data/oportunidades.ts';
+import { CircuitBreaker, CircuitOpenError } from './src/utils/circuitBreaker.ts';
 import {
   GLOBAL_UNIVERSE,
   UNIVERSE_B3_TOP50,
@@ -22,9 +23,10 @@ export { OPORTUNIDADES_SETUP };
 // MODO CONGELADO / STANDBY (PWA CONGELADO PELO USUÁRIO)
 // Interrompe qualquer busca diária, varredura das 19:00 BRT ou polling background.
 // =========================================================================
-export const IS_FROZEN = true;
-
 dotenv.config();
+
+export const IS_FROZEN = true;
+export const LIVE_QUOTE_DATA_ENABLED = process.env.LIVE_QUOTE_DATA_ENABLED !== 'false';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -88,6 +90,12 @@ export interface LiveQuoteDetails {
 
 // Cache em memória para cotações em tempo real (TTL de 30 segundos)
 const quoteCache = new Map<string, { quote: LiveQuoteDetails; timestamp: number }>();
+const quoteProviderCircuits = {
+  brapi: new CircuitBreaker(),
+  yahoo: new CircuitBreaker(),
+  finnhub: new CircuitBreaker(),
+  alphaVantage: new CircuitBreaker(),
+};
 
 // Preços de referência base (utilizados apenas como último fallback caso todos os provedores externos estejam offline)
 const FALLBACK_PRICES: Record<string, { price: number; currency: 'BRL' | 'USD' }> = {
@@ -131,8 +139,8 @@ export async function getLiveQuoteDetails(ticker: string, mercado?: 'B3' | 'US')
   // Normalização de migração de tickers (ex: Copel unificada de CPLE6 para CPLE3)
   if (cleanTicker === 'CPLE6') cleanTicker = 'CPLE3';
 
-  // 0. Modo Congelado: Retorna dados calibrados locais sem disparar chamadas externas
-  if (IS_FROZEN) {
+  // 0. Modo sem cotações externas: retorna apenas referências locais.
+  if (!LIVE_QUOTE_DATA_ENABLED) {
     const cached = quoteCache.get(cleanTicker);
     if (cached) return cached.quote;
 
@@ -175,80 +183,146 @@ export async function getLiveQuoteDetails(ticker: string, mercado?: 'B3' | 'US')
   }
 
   const nowTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-  // 1. Provedor Primário para Ações B3: Brapi (Direto da B3 em tempo real)
-  if (isB3) {
-    try {
-      const brapiTicker = cleanTicker.replace('.SA', '');
-      const res = await fetch(`https://brapi.dev/api/quote/${brapiTicker}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-        signal: AbortSignal.timeout(4000),
-      });
-      if (res.ok) {
-        const data: any = await res.json();
-        const r = data?.results?.[0];
-        if (r && typeof r.regularMarketPrice === 'number' && r.regularMarketPrice > 0) {
-          const quote: LiveQuoteDetails = {
-            ticker: cleanTicker.replace('.SA', ''),
-            price: Number(r.regularMarketPrice.toFixed(2)),
-            change: Number((r.regularMarketChange || 0).toFixed(2)),
-            changePercent: Number((r.regularMarketChangePercent || 0).toFixed(2)),
-            previousClose: typeof r.regularMarketPreviousClose === 'number' ? Number(r.regularMarketPreviousClose.toFixed(2)) : undefined,
-            high: typeof r.regularMarketDayHigh === 'number' ? Number(r.regularMarketDayHigh.toFixed(2)) : undefined,
-            low: typeof r.regularMarketDayLow === 'number' ? Number(r.regularMarketDayLow.toFixed(2)) : undefined,
-            currency: 'BRL',
-            updatedAt: nowTime,
-            source: 'B3 Oficial (Brapi)',
-          };
-          quoteCache.set(cacheKey, { quote, timestamp: Date.now() });
-          return quote;
-        }
-      }
-    } catch (err) {
-      // Continua para Yahoo Finance
-    }
-  }
-
-  // 2. Provedor Secundário / Ações US: Yahoo Finance (query1 / query2)
   const yahooSymbol = isB3
     ? (cleanTicker.endsWith('.SA') ? cleanTicker : `${cleanTicker}.SA`)
     : cleanTicker.replace('.', '-');
+  const finnhubKey = process.env.FINNHUB_API_KEY;
+  const alphaVantageKey = process.env.ALPHA_VANTAGE_API_KEY;
+  const providerOrder = isB3
+    ? ['brapi', 'yahoo', 'finnhub', 'alphaVantage'] as const
+    : ['yahoo', 'finnhub', 'alphaVantage'] as const;
 
-  const hosts = ['query1.finance.yahoo.com', 'query2.finance.yahoo.com'];
-  for (const host of hosts) {
-    try {
-      const res = await fetch(`https://${host}/v8/finance/chart/${yahooSymbol}?interval=1d&range=1d`, {
+  const fetchers: Record<(typeof providerOrder)[number], () => Promise<LiveQuoteDetails>> = {
+    brapi: async () => {
+      const brapiTicker = cleanTicker.replace('.SA', '');
+      const res = await fetch(`https://brapi.dev/api/quote/${encodeURIComponent(brapiTicker)}`, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-        signal: AbortSignal.timeout(4500),
+        signal: AbortSignal.timeout(4000),
       });
-      if (res.ok) {
-        const data: any = await res.json();
-        const meta = data?.chart?.result?.[0]?.meta;
-        const price = meta?.regularMarketPrice || meta?.chartPreviousClose;
-        if (typeof price === 'number' && price > 0) {
-          const prevClose = meta?.chartPreviousClose || price;
+      if (!res.ok) throw new Error(`Brapi returned ${res.status}`);
+      const data: any = await res.json();
+      const result = data?.results?.[0];
+      if (typeof result?.regularMarketPrice !== 'number' || result.regularMarketPrice <= 0) {
+        throw new Error('Brapi returned no valid quote');
+      }
+      return {
+        ticker: cleanTicker.replace('.SA', ''),
+        price: Number(result.regularMarketPrice.toFixed(2)),
+        change: Number((result.regularMarketChange || 0).toFixed(2)),
+        changePercent: Number((result.regularMarketChangePercent || 0).toFixed(2)),
+        previousClose: typeof result.regularMarketPreviousClose === 'number' ? Number(result.regularMarketPreviousClose.toFixed(2)) : undefined,
+        high: typeof result.regularMarketDayHigh === 'number' ? Number(result.regularMarketDayHigh.toFixed(2)) : undefined,
+        low: typeof result.regularMarketDayLow === 'number' ? Number(result.regularMarketDayLow.toFixed(2)) : undefined,
+        currency: 'BRL',
+        updatedAt: nowTime,
+        source: 'B3 (Brapi)',
+      };
+    },
+    yahoo: async () => {
+      let lastError: unknown;
+      for (const host of ['query1.finance.yahoo.com', 'query2.finance.yahoo.com']) {
+        try {
+          const res = await fetch(`https://${host}/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+            signal: AbortSignal.timeout(4500),
+          });
+          if (!res.ok) throw new Error(`Yahoo Finance returned ${res.status}`);
+          const data: any = await res.json();
+          const meta = data?.chart?.result?.[0]?.meta;
+          const price = meta?.regularMarketPrice || meta?.chartPreviousClose;
+          if (typeof price !== 'number' || price <= 0) throw new Error('Yahoo Finance returned no valid quote');
+          const previousClose = meta?.chartPreviousClose || price;
           const change = meta?.regularMarketPrice && meta?.chartPreviousClose ? meta.regularMarketPrice - meta.chartPreviousClose : 0;
-          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-
-          const quote: LiveQuoteDetails = {
+          return {
             ticker: cleanTicker,
             price: Number(price.toFixed(2)),
             change: Number(change.toFixed(2)),
-            changePercent: Number(changePercent.toFixed(2)),
-            previousClose: Number(prevClose.toFixed(2)),
+            changePercent: previousClose > 0 ? Number(((change / previousClose) * 100).toFixed(2)) : 0,
+            previousClose: Number(previousClose.toFixed(2)),
             high: typeof meta?.regularMarketDayHigh === 'number' ? Number(meta.regularMarketDayHigh.toFixed(2)) : undefined,
             low: typeof meta?.regularMarketDayLow === 'number' ? Number(meta.regularMarketDayLow.toFixed(2)) : undefined,
             currency: isB3 ? 'BRL' : 'USD',
             updatedAt: nowTime,
-            source: isB3 ? 'B3 Pregão (Yahoo Finance)' : 'NYSE/Nasdaq (Yahoo Finance)',
+            source: isB3 ? 'B3 (Yahoo Finance)' : 'NYSE/Nasdaq (Yahoo Finance)',
           };
-          quoteCache.set(cacheKey, { quote, timestamp: Date.now() });
-          return quote;
+        } catch (error) {
+          lastError = error;
         }
       }
-    } catch {
-      // tenta próximo host
+      throw lastError || new Error('Yahoo Finance unavailable');
+    },
+    finnhub: async () => {
+      if (!finnhubKey) throw new Error('Finnhub API key not configured');
+      const symbol = isB3 ? `${cleanTicker.replace('.SA', '')}.SA` : cleanTicker;
+      const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(finnhubKey)}`, {
+        signal: AbortSignal.timeout(4500),
+      });
+      if (!res.ok) throw new Error(`Finnhub returned ${res.status}`);
+      const data: any = await res.json();
+      if (typeof data?.c !== 'number' || data.c <= 0) throw new Error('Finnhub returned no valid quote');
+      return {
+        ticker: cleanTicker,
+        price: Number(data.c.toFixed(2)),
+        change: typeof data.d === 'number' ? Number(data.d.toFixed(2)) : 0,
+        changePercent: typeof data.dp === 'number' ? Number(data.dp.toFixed(2)) : 0,
+        previousClose: typeof data.pc === 'number' && data.pc > 0 ? Number(data.pc.toFixed(2)) : undefined,
+        high: typeof data.h === 'number' ? Number(data.h.toFixed(2)) : undefined,
+        low: typeof data.l === 'number' ? Number(data.l.toFixed(2)) : undefined,
+        currency: isB3 ? 'BRL' : 'USD',
+        updatedAt: nowTime,
+        source: `Finnhub${isB3 ? ' (B3)' : ''}`,
+      };
+    },
+    alphaVantage: async () => {
+      if (!alphaVantageKey) throw new Error('Alpha Vantage API key not configured');
+      const symbol = isB3 ? `${cleanTicker.replace('.SA', '')}.SA` : cleanTicker;
+      const url = new URL('https://www.alphavantage.co/query');
+      url.searchParams.set('function', 'GLOBAL_QUOTE');
+      url.searchParams.set('symbol', symbol);
+      url.searchParams.set('apikey', alphaVantageKey);
+      const res = await fetch(url, { signal: AbortSignal.timeout(4500) });
+      if (!res.ok) throw new Error(`Alpha Vantage returned ${res.status}`);
+      const data: any = await res.json();
+      const result = data?.['Global Quote'];
+      const price = Number(result?.['05. price']);
+      if (!Number.isFinite(price) || price <= 0) throw new Error('Alpha Vantage returned no valid quote');
+      const optionalNumber = (value: unknown) => {
+        const number = Number(value);
+        return Number.isFinite(number) && number > 0 ? Number(number.toFixed(2)) : undefined;
+      };
+      return {
+        ticker: cleanTicker,
+        price: Number(price.toFixed(2)),
+        change: Number(result?.['09. change'] || 0),
+        changePercent: Number.parseFloat(result?.['10. change percent'] || '0'),
+        previousClose: optionalNumber(result?.['08. previous close']),
+        high: optionalNumber(result?.['03. high']),
+        low: optionalNumber(result?.['04. low']),
+        currency: isB3 ? 'BRL' : 'USD',
+        updatedAt: nowTime,
+        source: `Alpha Vantage${isB3 ? ' (B3)' : ''}`,
+      };
+    },
+  };
+
+  for (let index = 0; index < providerOrder.length; index += 1) {
+    const provider = providerOrder[index];
+    if ((provider === 'finnhub' && !finnhubKey) || (provider === 'alphaVantage' && !alphaVantageKey)) continue;
+    try {
+      const quote = await quoteProviderCircuits[provider].call(fetchers[provider]);
+      quoteCache.set(cacheKey, { quote, timestamp: Date.now() });
+      return quote;
+    } catch (error) {
+      const nextProvider = providerOrder.slice(index + 1).find((next) =>
+        (next !== 'finnhub' || Boolean(finnhubKey)) && (next !== 'alphaVantage' || Boolean(alphaVantageKey))
+      );
+      const reason = error instanceof CircuitOpenError ? 'circuit open' : 'failed';
+      console.warn(`[Fallback] ${provider}(${cleanTicker}) ${reason}${nextProvider ? `; trying ${nextProvider}` : ''}`);
     }
+  }
+
+  if (cached) {
+    return { ...cached.quote, source: `${cached.quote.source} • Cache local (desatualizado)` };
   }
 
   // 3. Fallback de Segurança caso os provedores estejam indisponíveis
@@ -680,6 +754,43 @@ app.get('/api/audit-diagnostics', async (_req, res) => {
   });
 });
 
+// Endpoint: Estado conhecido dos provedores de cotação sem expor credenciais.
+app.get('/api/health', (_req, res) => {
+  const configuredProviders = {
+    brapi: true,
+    yahoo: true,
+    finnhub: Boolean(process.env.FINNHUB_API_KEY),
+    alphaVantage: Boolean(process.env.ALPHA_VANTAGE_API_KEY),
+  };
+  const providers = Object.fromEntries(
+    Object.entries(quoteProviderCircuits).map(([name, breaker]) => {
+      const circuit = breaker.snapshot();
+      const configured = configuredProviders[name as keyof typeof configuredProviders];
+      const status = !configured
+        ? 'UNCONFIGURED'
+        : circuit.state === 'OPEN'
+          ? 'DOWN'
+          : circuit.state === 'HALF_OPEN'
+            ? 'DEGRADED'
+            : circuit.lastFailureAt && (!circuit.lastSuccessAt || circuit.lastFailureAt > circuit.lastSuccessAt)
+              ? 'DEGRADED'
+              : circuit.lastSuccessAt
+              ? 'UP'
+              : 'NOT_TESTED';
+      return [name, { status, configured, ...circuit }];
+    })
+  );
+
+  res.json({
+    status: LIVE_QUOTE_DATA_ENABLED ? 'ACTIVE' : 'FROZEN',
+    applicationStatus: IS_FROZEN ? 'FROZEN' : 'ACTIVE',
+    isFrozen: IS_FROZEN,
+    marketDataEnabled: LIVE_QUOTE_DATA_ENABLED,
+    providers,
+    lastCheck: new Date().toISOString(),
+  });
+});
+
 // Endpoint: Informações sobre API e chaves em uso no backend (Primária + Backup)
 app.get('/api/api-status', (_req, res) => {
   res.json({
@@ -688,7 +799,7 @@ app.get('/api/api-status', (_req, res) => {
     customKeySupported: true,
     activeModels: ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'],
     clientSecurity: 'Nenhuma chave é exposta publicamente. Se o usuário fornecer sua própria chave, ela é enviada com segurança apenas ao seu backend.',
-    marketDataSource: 'B3 Oficial (Brapi) & NYSE/Nasdaq (Yahoo Finance) em tempo real',
+    marketDataSource: 'Brapi/Yahoo Finance com failover opcional Finnhub/Alpha Vantage; ver /api/health',
     balanceSheetSource: 'Demonstrações Financeiras Padronizadas (DFP/ITR CVM) e SEC 10-K',
   });
 });
