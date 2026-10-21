@@ -7,8 +7,9 @@
     "dev": "tsx server.ts",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node server.ts",
+    "start": "node --import tsx server.ts",
     "clean": "rm -rf dist server.js",
+    "test": "tsx --test src/utils/circuitBreaker.test.ts server.test.ts server.live.test.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

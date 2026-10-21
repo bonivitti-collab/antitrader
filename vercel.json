@@ -1,4 +1,10 @@
 {
+  "git": {
+    "deploymentEnabled": false
+  },
+  "buildCommand": "bun run build",
+  "installCommand": "bun install --frozen-lockfile",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/(.*)",
