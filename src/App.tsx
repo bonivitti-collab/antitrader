@@ -1147,16 +1147,6 @@ function calcularZonaPreco(op: {
             <span className="hidden xl:inline">{carregandoOportunidades ? 'Atualizando...' : 'Cotações'}</span>
           </button>
 
-          {/* Botão Copiar */}
-          <button
-            onClick={copiarResumo}
-            className="flex items-center justify-center gap-1 px-2 py-1 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors cursor-pointer active:scale-95"
-            title="Copiar relatório formatado de valuation"
-          >
-            {copiado ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-            <span className="hidden xl:inline">{copiado ? 'Copiado!' : 'Copiar'}</span>
-          </button>
-
           {/* Botão de Acompanhamento de Metas de Preço Graham (Visível em Tablets e Desktops) */}
           <button
             onClick={() => setModalMetasAberto(true)}
@@ -1172,30 +1162,6 @@ function calcularZonaPreco(op: {
                 🏆 {trackerStats.totalFinalizadas}
               </span>
             )}
-          </button>
-
-          {/* Botão de Auditoria / Status do Sistema */}
-          <button
-            onClick={abrirAuditoria}
-            className={`flex items-center gap-1 sm:gap-1.5 text-[11px] font-mono font-bold px-2 sm:px-2.5 py-1 rounded-md border transition-colors cursor-pointer shadow-2xs active:scale-95 ${
-              scanStatus?.isFrozen
-                ? 'text-sky-900 bg-sky-50 hover:bg-sky-100 border-sky-300 hover:border-sky-400'
-                : 'text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border-emerald-300 hover:border-emerald-400'
-            }`}
-            title={scanStatus?.isFrozen ? "PWA em Standby • Operações pausadas" : "PWA Ativo • Feeds em tempo real conectados"}
-          >
-            {scanStatus?.isFrozen ? (
-              <Snowflake className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-            ) : (
-              <Activity className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            )}
-            <span className="hidden lg:inline">Status:</span>
-            <span className="flex items-center gap-1">
-              <span className="hidden sm:inline">{scanStatus?.isFrozen ? 'PWA Congelado' : 'PWA Ativo'}</span>
-              <span className={`sm:hidden text-[10px] font-bold ${scanStatus?.isFrozen ? 'text-sky-800' : 'text-emerald-800'}`}>
-                {scanStatus?.isFrozen ? 'Congelado' : 'Ativo'}
-              </span>
-            </span>
           </button>
 
           {/* Toggles de Painéis no Desktop / Notebook para Personalizar Espaço */}
