@@ -350,7 +350,7 @@ async function generateContentWithRetry(params: {
   customKey?: string;
 }) {
   const clients = getGenAIClients(params.customKey);
-  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+  const models = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'];
   let lastErr = null;
 
   for (const clientObj of clients) {
@@ -810,7 +810,7 @@ app.get('/api/api-status', (_req, res) => {
     primaryKeyStatus: process.env.GEMINI_API_KEY ? 'Configurada e Ativa (Gratuita - Google AI Studio)' : 'Não configurada',
     backupKeyStatus: process.env.GEMINI_API_KEY_BACKUP ? 'Configurada (Fallback Ativo)' : 'Suporte a failover e chave customizada do usuário',
     customKeySupported: true,
-    activeModels: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'],
+    activeModels: ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'],
     clientSecurity: 'Nenhuma chave é exposta publicamente. Se o usuário fornecer sua própria chave, ela é enviada com segurança apenas ao seu backend.',
     marketDataSource: 'Brapi/Yahoo Finance com failover opcional Finnhub/Alpha Vantage; ver /api/health',
     balanceSheetSource: 'Demonstrações Financeiras Padronizadas (DFP/ITR CVM) e SEC 10-K',
@@ -1433,7 +1433,7 @@ Responda diretamente e com máxima inteligência analítica à mensagem acima.`;
 
     const clients = getGenAIClients(keyToUse);
     // Modelos com failover prioritário (alta velocidade e cota gratuita ativa)
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    const models = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'];
     let textResponse = '';
     let usedSource = '';
     let searchSources: { title?: string; uri?: string }[] = [];
