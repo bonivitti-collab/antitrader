@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_order_id ON public.subscriptions(ki
 -- 3. Habilitação de Row Level Security (RLS)
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
--- 4. Políticas de Leitura e Escrita
+-- 4. Políticas de Segurança (Row Level Security - RLS)
 -- Permite que usuários autenticados consultem seus próprios dados de assinatura
 DO $$
 BEGIN
@@ -48,22 +48,10 @@ BEGIN
   END IF;
 END $$;
 
--- Permite que a API do backend (Service Role e Anon para Webhooks) insira e atualize assinaturas
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'subscriptions' 
-    AND policyname = 'API Backend pode gerenciar assinaturas'
-  ) THEN
-    CREATE POLICY "API Backend pode gerenciar assinaturas"
-      ON public.subscriptions
-      FOR ALL
-      TO anon, service_role
-      USING (true)
-      WITH CHECK (true);
-  END IF;
-END $$;
+-- Proteção Absoluta contra Fraudes:
+-- Nenhum acesso anônimo (anon) de inserção ou alteração é permitido.
+-- Apenas a chave mestra de backend (SERVICE_ROLE_KEY) possui permissão para gravar/modificar
+-- assinaturas quando acionada pelo Webhook oficial da Kiwify.
 
 -- Comentário explicativo na tabela
 COMMENT ON TABLE public.subscriptions IS 'Tabela que armazena os clientes pagantes e o status de acesso do AntiTrader integrado com a Kiwify';

@@ -888,15 +888,17 @@ app.post('/api/webhooks/kiwify', async (req, res) => {
   try {
     const payload = req.body || {};
     const tokenHeader = (req.headers['x-kiwify-signature'] as string) || '';
-    const tokenQuery = (req.query.token as string) || '';
-    const tokenBody = payload.token || '';
+    const tokenQuery = (req.query.token as string) || (req.query.signature as string) || '';
+    const tokenBody = payload.token || payload.signature || '';
     const receivedToken = tokenQuery || tokenHeader || tokenBody;
     const expectedToken = process.env.KIWIFY_WEBHOOK_TOKEN;
 
-    // Se o token secreto estiver configurado no ambiente, valida a autenticidade
-    if (expectedToken && receivedToken && receivedToken !== expectedToken) {
-      console.warn('[Kiwify Webhook] Tentativa não autorizada com token inválido:', receivedToken);
-      return res.status(401).json({ error: 'Token de webhook Kiwify inválido' });
+    // Se o token secreto estiver configurado no ambiente, valida rigorosamente a autenticidade
+    if (expectedToken) {
+      if (!receivedToken || receivedToken !== expectedToken) {
+        console.warn('[Kiwify Webhook] Tentativa não autorizada ou sem token');
+        return res.status(401).json({ error: 'Token de webhook Kiwify ausente ou inválido' });
+      }
     }
 
     const orderId = payload.order_id || payload.Subscription?.id || `ord-${Date.now()}`;

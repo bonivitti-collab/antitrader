@@ -58,6 +58,7 @@ No painel do projeto na [Vercel](https://vercel.com):
 1. Vá em **Settings** -> **Environment Variables**.
 2. Adicione as chaves abaixo:
    * `KIWIFY_WEBHOOK_TOKEN`: *(O token secreto do webhook copiado no Passo 3)*
+   * `SUPABASE_SERVICE_ROLE_KEY`: *(Obtido em Supabase -> Project Settings -> API -> service_role secret)*
    * `VITE_KIWIFY_CHECKOUT_MENSAL_URL`: `https://pay.kiwify.com.br/SEU_LINK_MENSAL`
    * `VITE_KIWIFY_CHECKOUT_ANUAL_URL`: `https://pay.kiwify.com.br/SEU_LINK_ANUAL`
 3. Clique em **Save**.
