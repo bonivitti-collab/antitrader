@@ -34,7 +34,9 @@ import {
   ChevronLeft,
   ArrowLeft,
   Snowflake,
+  Building2,
 } from 'lucide-react';
+import { getCompanyProfile } from './data/companyProfiles';
 import { TrackedOpportunity } from './types/tracker';
 import {
   loadTrackedOpportunities,
@@ -776,6 +778,8 @@ export default function GrahamBuyZoneWorkspace() {
       grahamMultiplier,
     };
   }, [preco, lpa, vpa, g, yieldAAA, margem, ativo]);
+
+  const perfilAtivo = useMemo(() => getCompanyProfile(ativo), [ativo]);
 
   const isAtivoB3 = (mercado?: string, m?: string, ticker?: string) => {
     if (mercado === 'B3') return true;
@@ -2127,10 +2131,16 @@ function calcularZonaPreco(op: {
 
           {/* RÉGUA VISUAL DA ZONA DE COMPRA (GAUGE REFINADA) */}
           <div className="p-3.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xs overflow-hidden">
-            <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-2 flex-wrap gap-1">
-              <span className="text-emerald-700 whitespace-nowrap">Barato / Compra (&lt; {fmtMoeda(calc.zona)})</span>
-              <span className="text-amber-700 whitespace-nowrap">Preço Justo ({fmtMoeda(calc.fair)})</span>
-              <span className="text-red-700 whitespace-nowrap">Caro / Aguardar</span>
+            <div className="grid grid-cols-3 items-center text-[11px] font-bold text-slate-600 mb-2">
+              <div className="text-left">
+                <span className="text-emerald-700 whitespace-nowrap">Barato / Compra (&lt; {fmtMoeda(calc.zona)})</span>
+              </div>
+              <div className="text-center">
+                <span className="text-amber-700 whitespace-nowrap">Preço Justo ({fmtMoeda(calc.fair)})</span>
+              </div>
+              <div className="text-right">
+                <span className="text-red-700 whitespace-nowrap">Caro / Aguardar</span>
+              </div>
             </div>
 
             {/* Barra fina, elegante e arredondada */}
@@ -2161,11 +2171,11 @@ function calcularZonaPreco(op: {
               </div>
             </div>
 
-            <div className="flex justify-between text-[10px] sm:text-[11px] font-mono text-slate-600 mt-1 flex-wrap gap-1">
-              <span className="whitespace-nowrap">0.00</span>
-              <span className="whitespace-nowrap">Teto Zona: <strong className="text-emerald-700">{fmtMoeda(calc.zona)}</strong></span>
-              <span className="whitespace-nowrap">Fair Value: <strong className="text-amber-750">{fmtMoeda(calc.fair)}</strong></span>
-              <span className="whitespace-nowrap">Escala: {fmtMoeda(calc.scaleMax)}</span>
+            <div className="grid grid-cols-4 items-center text-[10px] sm:text-[11px] font-mono text-slate-600 mt-1">
+              <div className="text-left whitespace-nowrap">0.00</div>
+              <div className="text-center whitespace-nowrap">Teto Zona: <strong className="text-emerald-700">{fmtMoeda(calc.zona)}</strong></div>
+              <div className="text-center whitespace-nowrap">Fair Value: <strong className="text-amber-750">{fmtMoeda(calc.fair)}</strong></div>
+              <div className="text-right whitespace-nowrap">Escala: {fmtMoeda(calc.scaleMax)}</div>
             </div>
           </div>
 
@@ -2199,36 +2209,62 @@ function calcularZonaPreco(op: {
               </div>
             </div>
 
-            <div className="p-3 bg-white border-2 border-slate-300 rounded-lg space-y-2.5 shadow-2xs">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950 uppercase tracking-wider">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Condições para Buy &amp; Hold</span>
+            <div className="p-3 bg-white border-2 border-slate-300 rounded-lg space-y-2.5 shadow-2xs flex flex-col justify-between">
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Condições para Buy &amp; Hold</span>
+                </div>
+                <div className="p-2.5 bg-slate-50 rounded-md border border-slate-300 text-xs text-slate-800 leading-relaxed min-h-[70px]">
+                  {ativo.condicoesBuyHold}
+                </div>
+                <div className="pt-2 border-t border-slate-200 text-xs font-mono text-slate-700 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                    <span className="text-slate-500 font-sans text-[11px]">Setup Graham:</span>
+                    <span className="font-bold text-slate-900 whitespace-nowrap">
+                      P/L &times; P/VP = {calc.grahamMultiplier.toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-sans whitespace-nowrap">
+                      (máx: 22.5)
+                    </span>
+                  </div>
+                  <div className="shrink-0">
+                    {calc.grahamMultiplier <= 22.5 ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-md whitespace-nowrap shadow-2xs">
+                        <span>Aprovado</span>
+                        <span className="font-extrabold text-emerald-600">✓</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-md whitespace-nowrap shadow-2xs">
+                        <span>Acima de 22.5</span>
+                        <span className="font-extrabold text-amber-600">✕</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="p-2.5 bg-slate-50 rounded-md border border-slate-300 text-xs text-slate-800 leading-relaxed min-h-[90px]">
-                {ativo.condicoesBuyHold}
-              </div>
-              <div className="pt-2.5 border-t border-slate-200 text-xs font-mono text-slate-700 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                  <span className="text-slate-500 font-sans text-[11px]">Setup Graham:</span>
-                  <span className="font-bold text-slate-900 whitespace-nowrap">
-                    P/L &times; P/VP = {calc.grahamMultiplier.toFixed(2)}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-sans whitespace-nowrap">
-                    (máx: 22.5)
+
+              {/* SOBRE A EMPRESA & PERFIL DO NEGÓCIO (PREENCHENDO O ESPAÇO EM BRANCO) */}
+              <div className="pt-2.5 border-t border-slate-200 mt-2 space-y-1.5">
+                <div className="flex items-center justify-between gap-1 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-900 uppercase tracking-wider">
+                    <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span>Sobre a Empresa ({ativo.ticker})</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded truncate max-w-[220px]">
+                    {perfilAtivo.setorPt}
                   </span>
                 </div>
-                <div className="shrink-0">
-                  {calc.grahamMultiplier <= 22.5 ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-md whitespace-nowrap shadow-2xs">
-                      <span>Aprovado</span>
-                      <span className="font-extrabold text-emerald-600">✓</span>
+                <div className="p-2.5 bg-blue-50/50 rounded-md border border-blue-200/80 text-xs text-slate-700 leading-relaxed space-y-1">
+                  <div className="font-bold text-slate-900 text-xs flex items-center justify-between">
+                    <span>{ativo.nome}</span>
+                    <span className="text-[10px] font-mono font-semibold text-blue-700 bg-blue-100/70 px-1.5 py-0.2 rounded">
+                      {perfilAtivo.segmento}
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-md whitespace-nowrap shadow-2xs">
-                      <span>Acima de 22.5</span>
-                      <span className="font-extrabold text-amber-600">✕</span>
-                    </span>
-                  )}
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed pt-0.5">
+                    {perfilAtivo.descricao}
+                  </p>
                 </div>
               </div>
             </div>
