@@ -2104,16 +2104,19 @@ function calcularZonaPreco(op: {
           </div>
 
           {/* RÉGUA VISUAL DA ZONA DE COMPRA (GAUGE REFINADA) */}
-          <div className="p-3.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xs overflow-hidden">
-            <div className="grid grid-cols-3 items-center text-[11px] font-bold text-slate-600 mb-2">
-              <div className="text-left">
-                <span className="text-emerald-700 whitespace-nowrap">Barato / Compra (&lt; {fmtMoeda(calc.zona)})</span>
-              </div>
-              <div className="text-center">
-                <span className="text-amber-700 whitespace-nowrap">Preço Justo ({fmtMoeda(calc.fair)})</span>
-              </div>
-              <div className="text-right">
-                <span className="text-red-700 whitespace-nowrap">Caro / Aguardar</span>
+          <div className="p-3 sm:p-3.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xs overflow-hidden">
+            {/* Faixa / Quadrinho de Rótulos Centralizados na Vertical e Horizontal */}
+            <div className="bg-slate-50/90 border border-slate-200 rounded-md py-2 px-3 mb-2.5 flex items-center justify-center">
+              <div className="grid grid-cols-3 items-center w-full text-[11px] font-bold text-slate-700">
+                <div className="text-left flex items-center">
+                  <span className="text-emerald-700 whitespace-nowrap">Barato / Compra (&lt; {fmtMoeda(calc.zona)})</span>
+                </div>
+                <div className="text-center flex items-center justify-center">
+                  <span className="text-amber-700 whitespace-nowrap">Preço Justo ({fmtMoeda(calc.fair)})</span>
+                </div>
+                <div className="text-right flex items-center justify-end">
+                  <span className="text-red-700 whitespace-nowrap">Caro / Aguardar</span>
+                </div>
               </div>
             </div>
 
