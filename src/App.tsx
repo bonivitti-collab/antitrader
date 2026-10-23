@@ -2050,7 +2050,7 @@ function calcularZonaPreco(op: {
           )}
 
           {/* Cards das Métricas Centrais (Quadrinhos com bordas nítidas) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 shrink-0">
             <div className="p-3 bg-white border-2 border-slate-300 rounded-lg shadow-2xs">
               <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
                 Preço Justo (PJ / TP1)
@@ -2104,19 +2104,17 @@ function calcularZonaPreco(op: {
           </div>
 
           {/* RÉGUA VISUAL DA ZONA DE COMPRA (GAUGE REFINADA) */}
-          <div className="p-3 sm:p-3.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xs overflow-hidden">
-            {/* Faixa / Quadrinho de Rótulos Centralizados na Vertical e Horizontal */}
-            <div className="bg-slate-50/90 border border-slate-200 rounded-md py-2 px-3 mb-2.5 flex items-center justify-center">
-              <div className="grid grid-cols-3 items-center w-full text-[11px] font-bold text-slate-700">
-                <div className="text-left flex items-center">
-                  <span className="text-emerald-700 whitespace-nowrap">Barato / Compra (&lt; {fmtMoeda(calc.zona)})</span>
-                </div>
-                <div className="text-center flex items-center justify-center">
-                  <span className="text-amber-700 whitespace-nowrap">Preço Justo ({fmtMoeda(calc.fair)})</span>
-                </div>
-                <div className="text-right flex items-center justify-end">
-                  <span className="text-red-700 whitespace-nowrap">Caro / Aguardar</span>
-                </div>
+          <div className="p-3 sm:p-3.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xs shrink-0">
+            {/* Rótulos da Régua Centralizados na Horizontal e Vertical */}
+            <div className="grid grid-cols-3 items-center text-[11px] font-bold text-slate-600 mb-2">
+              <div className="text-left flex items-center">
+                <span className="text-emerald-700 whitespace-nowrap">Barato / Compra (&lt; {fmtMoeda(calc.zona)})</span>
+              </div>
+              <div className="text-center flex items-center justify-center">
+                <span className="text-amber-700 whitespace-nowrap">Preço Justo ({fmtMoeda(calc.fair)})</span>
+              </div>
+              <div className="text-right flex items-center justify-end">
+                <span className="text-red-700 whitespace-nowrap">Caro / Aguardar</span>
               </div>
             </div>
 
@@ -2157,7 +2155,7 @@ function calcularZonaPreco(op: {
           </div>
 
           {/* FICHA TÉCNICA DO BALANÇO E TESE BUY & HOLD (QUADRINHOS BEM DEMARCADOS) */}
-          <div className="grid grid-cols-1 2xl:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 2xl:grid-cols-2 gap-3 shrink-0">
             <div className="p-3 bg-white border-2 border-slate-300 rounded-lg space-y-2.5 shadow-2xs">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 uppercase tracking-wider">
                 <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
@@ -2248,7 +2246,7 @@ function calcularZonaPreco(op: {
           </div>
 
           {/* MATRIZ DE SENSIBILIDADE POR MARGEM DE SEGURANÇA */}
-          <div className="p-3 bg-white border-2 border-slate-300 rounded-lg shadow-2xs">
+          <div className="p-3 bg-white border-2 border-slate-300 rounded-lg shadow-2xs shrink-0">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                 Matriz de Sensibilidade por Margem de Segurança
@@ -2284,7 +2282,7 @@ function calcularZonaPreco(op: {
           </div>
 
           {/* SIMULADOR DE PARÂMETROS EDITÁVEIS */}
-          <div className="p-3 bg-white border-2 border-slate-300 rounded-lg space-y-2.5 shadow-2xs">
+          <div className="p-3 bg-white border-2 border-slate-300 rounded-lg space-y-2.5 shadow-2xs shrink-0">
             <div className="flex items-center justify-between text-xs font-bold text-slate-900">
               <span className="flex items-center gap-1.5">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
