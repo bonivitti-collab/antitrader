@@ -1168,37 +1168,6 @@ function calcularZonaPreco(op: {
             )}
           </button>
 
-          {/* Toggles de Painéis no Desktop / Notebook para Personalizar Espaço */}
-          <div className="hidden lg:flex items-center gap-1 border-l border-slate-300 pl-1.5 ml-0.5">
-            <button
-              type="button"
-              onClick={() => setPainelEsquerdoRecolhido(!painelEsquerdoRecolhido)}
-              className={`p-1 px-1.5 rounded-md border text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1 ${
-                painelEsquerdoRecolhido
-                  ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-              }`}
-              title={painelEsquerdoRecolhido ? 'Expandir painel de oportunidades' : 'Recolher painel de oportunidades para dar mais espaço ao valuation'}
-            >
-              <PanelLeft className="w-3.5 h-3.5 text-blue-600" />
-              <span className="text-[10px] hidden xl:inline">Oportunidades</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPainelDireitoRecolhido(!painelDireitoRecolhido)}
-              className={`p-1 px-1.5 rounded-md border text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1 ${
-                painelDireitoRecolhido
-                  ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-              }`}
-              title={painelDireitoRecolhido ? 'Expandir painel AntiTrader AI' : 'Recolher painel AntiTrader AI para focar no valuation'}
-            >
-              <PanelRight className="w-3.5 h-3.5 text-blue-600" />
-              <span className="text-[10px] hidden xl:inline">IA</span>
-            </button>
-          </div>
-
           {/* Menu de Perfil / Acesso do Usuário */}
           <div className="border-l border-slate-300 pl-1.5 ml-0.5">
             <UserProfileMenu
@@ -1472,18 +1441,23 @@ function calcularZonaPreco(op: {
                   </button>
                 </div>
 
-                <button
-                  onClick={() => setModalScanInfoAberto(true)}
-                  className="flex items-center gap-1 bg-[#0f172a] text-white px-1.5 py-0.5 rounded font-mono border border-sky-800/60 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs ml-auto"
-                  title={scanStatus?.isFrozen ? "PWA Congelado • Varreduras e buscas diárias desativadas" : "Varredura Diária às 19:00 BRT"}
-                >
-                  {scanStatus?.isFrozen ? (
-                    <Snowflake className="w-2.5 h-2.5 text-sky-400 shrink-0" />
-                  ) : (
-                    <Clock className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
-                  )}
-                  <CountdownDisplay isFrozen={scanStatus?.isFrozen ?? false} nextScanTime={scanStatus?.nextScanTime} className="font-bold text-sky-300 text-[10px]" />
-                </button>
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <span className="text-[10px] text-slate-500 font-sans font-medium whitespace-nowrap">
+                    Próxima varredura global em:
+                  </span>
+                  <button
+                    onClick={() => setModalScanInfoAberto(true)}
+                    className="flex items-center gap-1 bg-[#0f172a] text-white px-1.5 py-0.5 rounded font-mono border border-sky-800/60 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs"
+                    title={scanStatus?.isFrozen ? "PWA Congelado • Varreduras e buscas diárias desativadas" : "Varredura Diária às 19:00 BRT"}
+                  >
+                    {scanStatus?.isFrozen ? (
+                      <Snowflake className="w-2.5 h-2.5 text-sky-400 shrink-0" />
+                    ) : (
+                      <Clock className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                    )}
+                    <CountdownDisplay isFrozen={scanStatus?.isFrozen ?? false} nextScanTime={scanStatus?.nextScanTime} className="font-bold text-sky-300 text-[10px]" />
+                  </button>
+                </div>
               </div>
             </div>
 
