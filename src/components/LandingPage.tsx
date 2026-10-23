@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   ShieldCheck,
@@ -6,6 +6,7 @@ import {
   Target,
   Zap,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   ArrowRight,
   Clock,
@@ -71,6 +72,101 @@ export function LandingPage({ onEnterApp, onOpenAuth }: LandingPageProps) {
       onEnterApp();
     }
   };
+
+  // Estado e Dados do Carrossel de Exemplos Reais
+  const [slideAtual, setSlideAtual] = useState(0);
+  const [carrosselPausado, setCarrosselPausado] = useState(false);
+
+  const slidesExemplo = [
+    {
+      id: 'valuation',
+      modulo: 'Módulo 1: Setup Graham-Buffett',
+      titulo: 'Valuation Quantitativo & Preço Justo',
+      tag: 'ZONA DE COMPRA CONFIRMADA',
+      ticker: 'BBAS3',
+      empresa: 'Banco do Brasil S.A.',
+      mercado: 'B3',
+      score: 'Score 88 (A)',
+      statusPreco: 'Margem de Segurança de +108%',
+      cotacao: 'R$ 24,64',
+      badgeCor: 'bg-emerald-950/80 text-emerald-300 border-emerald-800/60',
+      destaque: 'O AntiTrader cruzou o lucro auditado (LPA R$ 6,24) com patrimônio (VPA R$ 38,10) e identificou que o papel negocia pela metade do seu valor intrínseco.',
+      metricas: [
+        { label: 'Entrada Sugerida', val: 'R$ 23,90', sub: 'Stop: R$ 19,12 (-20%)', cor: 'text-white' },
+        { label: 'Preço Justo (TP1)', val: 'R$ 51,21', sub: '+108% Upside', cor: 'text-teal-300' },
+        { label: 'Alvo Estendido (TP2)', val: 'R$ 58,40', sub: '+137% Upside', cor: 'text-indigo-300' },
+        { label: 'Diretriz Graham', val: 'COMPRA', sub: 'P/L 3.95x | ROE 21.3%', cor: 'text-emerald-400' },
+      ],
+    },
+    {
+      id: 'esteira',
+      modulo: 'Módulo 2: Esteira de Metas',
+      titulo: 'Execução Disciplinada de Lucro (TP1 / TP2)',
+      tag: 'META BATIDA COM SUCESSO',
+      ticker: 'SAPR4',
+      empresa: 'Sanepar PN',
+      mercado: 'B3',
+      score: 'Finalizada',
+      statusPreco: 'Lucro Realizado de +58.3%',
+      cotacao: 'R$ 6,52',
+      badgeCor: 'bg-teal-950/80 text-teal-300 border-teal-800/60',
+      destaque: 'A Esteira de Metas acompanhou o papel da entrada (R$ 4,12) até atingir o Preço Justo de R$ 6,48 com stop móvel protetor, gerando 58.3% de rentabilidade.',
+      metricas: [
+        { label: 'Preço de Entrada', val: 'R$ 4,12', sub: '14/01/2026', cor: 'text-white' },
+        { label: 'Saída Finalizada', val: 'R$ 6,52', sub: '+58.3% Realizado', cor: 'text-emerald-300' },
+        { label: 'Alvo TP1 (Batido)', val: 'R$ 6,48', sub: '100% Concluído', cor: 'text-teal-300' },
+        { label: 'Dias Decorridos', val: '155 dias', sub: 'DY 8.2% acumulado', cor: 'text-sky-300' },
+      ],
+    },
+    {
+      id: 'ai-copilot',
+      modulo: 'Módulo 3: Copilot com IA',
+      titulo: 'Pesquisa em Tempo Real & Mercado Global',
+      tag: 'WEB RESEARCH & S&P 500 ATIVO',
+      ticker: 'S&P 500',
+      empresa: 'Destaques do Pregão de Nova York',
+      mercado: 'Wall Street',
+      score: 'Grounded',
+      statusPreco: 'Destaques: CCI (+9,08%), CRWD (+8,25%), SLB (+7,04%)',
+      cotacao: 'Ao Vivo',
+      badgeCor: 'bg-blue-950/80 text-blue-300 border-blue-800/60',
+      destaque: 'Conectada via Google Search aos balanços da SEC/CVM, a IA sintetiza catalisadores fundamentais, riscos e números em segundos, sem linguagem prolixa.',
+      metricas: [
+        { label: 'Crown Castle (CCI)', val: '+9,08%', sub: 'Locação Torres SpaceX', cor: 'text-emerald-300' },
+        { label: 'CrowdStrike (CRWD)', val: '+8,25%', sub: 'Avanço Cibersegurança', cor: 'text-emerald-300' },
+        { label: 'Palo Alto (PANW)', val: '+7,22%', sub: 'Contratos em Nuvem', cor: 'text-emerald-300' },
+        { label: 'SLB (Schlumberger)', val: '+7,04%', sub: 'Rali Petróleo Brent', cor: 'text-emerald-300' },
+      ],
+    },
+    {
+      id: 'scanner',
+      modulo: 'Módulo 4: Scanner Quantitativo',
+      titulo: 'Varredura Diária Automática às 19h',
+      tag: '33 ATIVOS NA ZONA DE COMPRA',
+      ticker: '168 ATIVOS',
+      empresa: 'B3, FIIs e Dividend Kings dos EUA',
+      mercado: 'Global',
+      score: '168 Varreduras',
+      statusPreco: 'Varredura automática com relógio regressivo',
+      cotacao: 'Diária 19h',
+      badgeCor: 'bg-emerald-950/80 text-emerald-300 border-emerald-800/60',
+      destaque: 'O scanner monitora dezenas de empresas e alerta o investidor quando o mercado precifica ativos de alto dividendo com desconto acima de 20%.',
+      metricas: [
+        { label: 'Universo Monitorado', val: '168 Papéis', sub: 'B3, FIIs e S&P 500', cor: 'text-white' },
+        { label: 'Na Zona de Compra', val: '33 Ativos', sub: 'Margem > 20%', cor: 'text-emerald-300' },
+        { label: 'Filtro Defensivo', val: 'Graham & Barsi', sub: 'Empresas Lucrativas', cor: 'text-teal-300' },
+        { label: 'Próxima Varredura', val: '19:00', sub: 'Atualização Automática', cor: 'text-sky-300' },
+      ],
+    },
+  ];
+
+  useEffect(() => {
+    if (carrosselPausado) return;
+    const timer = setInterval(() => {
+      setSlideAtual((prev) => (prev + 1) % slidesExemplo.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [carrosselPausado, slidesExemplo.length]);
 
   const faqs = [
     {
@@ -189,22 +285,14 @@ export function LandingPage({ onEnterApp, onOpenAuth }: LandingPageProps) {
           O <strong>AntiTrader</strong> une a matemática conservadora de Benjamin Graham com um <strong>Copilot de Inteligência Artificial Fundamentalista</strong>. Ele audita balanços da CVM e SEC, detecta pegadinhas contábeis, cruza o macro em tempo real e entrega a <strong>Zona de Compra exata</strong> com alvos <strong>TP1</strong>, <strong>TP2</strong> e <strong>Stop de Invalidação</strong>.
         </p>
 
-        {/* CTAs do Hero */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+        {/* CTA Único do Hero (Foco Total em Conversão) */}
+        <div className="mt-8 flex items-center justify-center">
           <button
             onClick={() => handleOpenAuth('signup')}
-            className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-black text-sm sm:text-base text-white bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 shadow-xl shadow-blue-600/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-8 py-4 rounded-xl font-black text-base sm:text-lg text-white bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 shadow-xl shadow-blue-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2.5"
           >
             <span>Começar Teste de 7 Dias Grátis</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={onEnterApp}
-            className="w-full sm:w-auto px-5 py-3.5 rounded-xl font-bold text-sm text-slate-300 hover:text-white bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 transition-all cursor-pointer flex items-center justify-center gap-2"
-          >
-            <span>Ver Terminal &amp; IA ao Vivo</span>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
+            <ArrowRight className="w-5 h-5" />
           </button>
         </div>
 
@@ -225,67 +313,119 @@ export function LandingPage({ onEnterApp, onOpenAuth }: LandingPageProps) {
         </div>
 
         {/* ======================================================== */}
-        {/* CARD MOCKUP: PREVIEW INTERATIVO DA ESTEIRA              */}
+        {/* CARROSSEL DE EXEMPLOS REAIS DO TERMINAL ANTITRADER       */}
         {/* ======================================================== */}
-        <div className="mt-12 sm:mt-16 bg-gradient-to-b from-slate-900 to-slate-950 p-2 sm:p-4 rounded-2xl border border-slate-700/80 shadow-2xl max-w-3xl mx-auto text-left">
+        <div 
+          className="mt-12 sm:mt-16 bg-gradient-to-b from-slate-900 to-slate-950 p-3 sm:p-5 rounded-2xl border border-slate-700/80 shadow-2xl max-w-3xl mx-auto text-left relative overflow-hidden"
+          onMouseEnter={() => setCarrosselPausado(true)}
+          onMouseLeave={() => setCarrosselPausado(false)}
+        >
+          {/* Barra Superior Estilo Terminal com Controles de Navegação */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs text-slate-400">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-rose-500/80 inline-block" />
               <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block" />
               <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block" />
-              <span className="ml-2 font-mono text-slate-300 font-bold">Terminal AntiTrader — Esteira de Metas</span>
+              <span className="ml-2 font-mono text-slate-300 font-bold hidden sm:inline">
+                {slidesExemplo[slideAtual].modulo}
+              </span>
             </div>
-            <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
-              ● Varredura Diária Ativa
-            </span>
+
+            {/* Controles de Navegação Rápida (Anterior / Próximo) */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setSlideAtual((prev) => (prev - 1 + slidesExemplo.length) % slidesExemplo.length)}
+                className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700"
+                title="Exemplo Anterior"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-[10px] font-mono font-bold text-slate-400 px-1">
+                {slideAtual + 1} / {slidesExemplo.length}
+              </span>
+              <button
+                onClick={() => setSlideAtual((prev) => (prev + 1) % slidesExemplo.length)}
+                className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700"
+                title="Próximo Exemplo"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
-          <div className="pt-4 space-y-3">
-            <div className="bg-slate-950/80 p-3 sm:p-4 rounded-xl border border-slate-800 flex flex-col gap-3">
+          {/* Conteúdo Dinâmico do Slide Ativo */}
+          <div className="pt-4 space-y-3 transition-all duration-300 ease-in-out">
+            <div className="bg-slate-950/85 p-3.5 sm:p-5 rounded-xl border border-slate-800 flex flex-col gap-3.5 shadow-inner">
+              
+              {/* Cabeçalho do Card */}
               <div className="flex items-start justify-between flex-wrap gap-2">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-lg font-black text-white">BBAS3</span>
-                    <span className="text-xs font-semibold text-slate-400">Banco do Brasil S.A.</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/50">B3</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800/50">Score 88 (A)</span>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase bg-emerald-600 text-white">Confirmada</span>
+                    <span className="font-mono text-xl font-black text-white">
+                      {slidesExemplo[slideAtual].ticker}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-400">
+                      {slidesExemplo[slideAtual].empresa}
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/50">
+                      {slidesExemplo[slideAtual].mercado}
+                    </span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${slidesExemplo[slideAtual].badgeCor}`}>
+                      {slidesExemplo[slideAtual].score}
+                    </span>
                   </div>
                   <div className="mt-1 text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    <span>NA ZONA DE COMPRA (Margem de Segurança 108%)</span>
+                    <span className="uppercase tracking-wide">{slidesExemplo[slideAtual].tag}</span>
+                    <span className="text-slate-400 font-normal">({slidesExemplo[slideAtual].statusPreco})</span>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <div className="text-xs text-slate-400 font-mono">Cotação Atual</div>
-                  <div className="text-base sm:text-lg font-mono font-black text-white">R$ 24,64</div>
+                  <div className="text-[11px] text-slate-400 font-mono">Referência</div>
+                  <div className="text-base sm:text-lg font-mono font-black text-white">
+                    {slidesExemplo[slideAtual].cotacao}
+                  </div>
                 </div>
               </div>
 
-              {/* Grid das 4 métricas de preço */}
+              {/* Explicação da Tese do Slide */}
+              <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
+                {slidesExemplo[slideAtual].destaque}
+              </p>
+
+              {/* Grid das 4 métricas reais */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block font-sans">Entrada Sugerida</span>
-                  <span className="font-bold text-white text-sm">R$ 23,90</span>
-                  <span className="text-[10px] text-rose-400 block">Stop: R$ 19,12 (-20%)</span>
-                </div>
-                <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block font-sans">Preço Justo (TP1)</span>
-                  <span className="font-bold text-teal-300 text-sm">R$ 51,21</span>
-                  <span className="text-[10px] text-teal-400 block">+108% Upside</span>
-                </div>
-                <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block font-sans">Alvo Estendido (TP2)</span>
-                  <span className="font-bold text-indigo-300 text-sm">R$ 58,40</span>
-                  <span className="text-[10px] text-indigo-400 block">+137% Alvo</span>
-                </div>
-                <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block font-sans">Diretriz Graham</span>
-                  <span className="font-bold text-emerald-400 text-sm">Comprar</span>
-                  <span className="text-[10px] text-slate-400 block">Dentro da Zona</span>
-                </div>
+                {slidesExemplo[slideAtual].metricas.map((m, idx) => (
+                  <div key={idx} className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 flex flex-col justify-between">
+                    <span className="text-[10px] text-slate-400 block font-sans truncate">{m.label}</span>
+                    <span className={`font-bold text-sm sm:text-base my-0.5 ${m.cor}`}>{m.val}</span>
+                    <span className="text-[10px] text-slate-400 block truncate">{m.sub}</span>
+                  </div>
+                ))}
               </div>
+            </div>
+          </div>
+
+          {/* Indicadores de Slides Interativos (Pills Clicáveis) */}
+          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between flex-wrap gap-2 text-xs">
+            <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+              Passe o mouse para pausar • Clique para navegar
+            </span>
+            <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
+              {slidesExemplo.map((s, idx) => (
+                <button
+                  key={s.id}
+                  onClick={() => setSlideAtual(idx)}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                    slideAtual === idx
+                      ? 'bg-blue-600 text-white shadow-xs scale-105'
+                      : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {idx + 1}. {s.id === 'valuation' ? 'Valuation' : s.id === 'esteira' ? 'Metas' : s.id === 'ai-copilot' ? 'IA Copilot' : 'Scanner'}
+                </button>
+              ))}
             </div>
           </div>
         </div>
