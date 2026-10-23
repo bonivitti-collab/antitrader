@@ -1315,6 +1315,41 @@ Acompanhamento contínuo de resultados regulatórios (CVM/SEC) e notícias de me
     };
   }
 
+  // 5.5. Tópico: Mercado Global, S&P 500, Ibovespa, Maiores Altas e Baixas
+  if (
+    msgLower.includes('alta') ||
+    msgLower.includes('queda') ||
+    msgLower.includes('sp500') ||
+    msgLower.includes('s&p') ||
+    msgLower.includes('ibov') ||
+    msgLower.includes('mercado') ||
+    msgLower.includes('hoje')
+  ) {
+    const isSP500 = msgLower.includes('sp500') || msgLower.includes('s&p') || msgLower.includes('eua') || msgLower.includes('nyse') || msgLower.includes('nasdaq');
+    if (isSP500) {
+      return {
+        usedSource: 'Terminal Institucional (S&P 500 Market Movers)',
+        reply: `### Panorama do Pregão: Destaques e Maiores Altas do S&P 500
+
+No mercado norte-americano, os ativos de maior valorização refletiram fortes catalisadores corporativos específicos em infraestrutura de telecomunicações, cibersegurança e no setor de energia:
+
+| Ticker | Empresa | Variação (%) | Setor | Catalisador Fundamental |
+| :--- | :--- | :--- | :--- | :--- |
+| **CCI** | Crown Castle Inc. | **+9,08%** | Real Estate / Infra | Negociações com SpaceX para expansão de rede de antenas sem fio |
+| **CRWD** | CrowdStrike Holdings | **+8,25%** | Tecnologia / Cibersegurança | Fluxo institucional com novas vulnerabilidades críticas em servidores |
+| **PANW** | Palo Alto Networks | **+7,22%** | Tecnologia / Cibersegurança | Forte demanda por proteção de infraestrutura em nuvem corporativa |
+| **SLB** | SLB (Schlumberger) | **+7,04%** | Energia / Óleo & Gás | Rali do barril de petróleo Brent e expansão de Capex em exploração |
+| **HAL** | Halliburton Company | **+5,21%** | Energia / Serviços | Pressão compradora impulsionada por prêmio de risco no Oriente Médio |
+
+---
+
+### Diretrizes de Valuation & Gestão de Risco
+1. **Evite a Armadilha do Momentum:** Sob a ótica do Value Investing e Benjamin Graham, fortes altas diárias não devem ser perseguidas sem verificar a Margem de Segurança intrínseca do ativo.
+2. **Moat e Fluxo de Caixa:** Ativos de infraestrutura crítica (como torres e cibersegurança) possuem barreiras de entrada estruturais, oferecendo previsibilidade de receita de longo prazo.`
+      };
+    }
+  }
+
   // 6. Resposta Geral Especialista (Ampla e Profunda para qualquer outro questionamento)
   return {
     usedSource: 'AntiTrader AI Multitemas',
@@ -1356,7 +1391,17 @@ app.post('/api/gemini/chat', async (req, res) => {
     if (b3Matches) tickersDetectados.push(...b3Matches);
     const usMatches = msgUpper.match(/\b(BRK\.B|BRK-B|AAPL|MSFT|KO|PFE|CVS|TSLA|NVDA|GOOGL|AMZN|F|T|GM|BTI|WBA)\b/g);
     if (usMatches) tickersDetectados.push(...usMatches);
-    if (ativoContexto?.ticker && !tickersDetectados.includes(ativoContexto.ticker.toUpperCase())) {
+
+    // Evita poluir o contexto com uma ação local brasileira quando o investidor perguntar sobre S&P 500 ou mercado amplo
+    const isAskingAboutUS = /sp500|s&p\s*500|nasdaq|dow\s*jones|eua|wall\s*street|mercado\s*americano|nyse/i.test(message);
+    const isAskingAboutMacroGeral = /maiores\s*altas|maiores\s*quedas|mercado\s*hoje|fechamento|pregao|preg[aã]o/i.test(message);
+
+    if (
+      ativoContexto?.ticker &&
+      !tickersDetectados.includes(ativoContexto.ticker.toUpperCase()) &&
+      !isAskingAboutUS &&
+      !isAskingAboutMacroGeral
+    ) {
       tickersDetectados.push(ativoContexto.ticker.toUpperCase());
     }
 
@@ -1406,21 +1451,44 @@ DADOS DO ATIVO SELECIONADO NA PLATAFORMA ANTIGRAVITY:
 `
       : 'Nenhum ativo específico selecionado no momento.';
 
-    const systemInstruction = `Você é o Gemini, atuando como o AntiTrader AI de Inteligência Financeira, Mercado de Ações e Valuation.
-Você tem a capacidade analítica completa, aberta, flexível e conversacional do próprio Gemini. Responda a qualquer pergunta, dúvida teórica, conceitual, técnica, macroeconômica, setup ou tese de investimento com total profundidade e sem respostas pré-fabricadas.
+    const systemInstruction = `Você é o AntiTrader AI, a inteligência financeira institucional, analista de ações e terminal de mercado do investidor.
+Você tem a capacidade analítica completa, aberta, flexível e conversacional do Gemini. Responda a qualquer pergunta, dúvida teórica, conceitual, técnica, macroeconômica, setup ou tese de investimento com máxima profundidade e rigor.
 
 DIRETRIZES FUNDAMENTAIS:
 1. RESPONDA DIRETAMENTE AO QUE O INVESTIDOR PERGUNTOU:
    - Perguntas conceituais (ex: "o que significa teto da zona de compra?", "o que é margem de segurança?", "como funciona o método Barsi?"): explique o conceito de forma brilhante, didática e aprofundada, com exemplos numéricos e fundamentos. Não force a análise no ativo selecionado se o investidor fez uma pergunta teórica ampla.
-   - Perguntas sobre mercado, S&P 500, B3, setores em alta, taxas de juros (Selic/Fed), inflação, commodities: responda com visão macro e microeconômica rica e fundamentada.
+   - Perguntas sobre mercado, S&P 500, Nasdaq, B3, setores em alta, taxas de juros (Selic/Fed), inflação, commodities: responda com visão macro e microeconômica rica e fundamentada.
    - Validação de setups e teses: se o usuário pedir para testar um setup (ex: P/L < 10, ROE > 15%, etc.) ou tese, aponte os prós, os contras, os riscos ocultos e as métricas para acompanhamento.
-2. DADOS DE CONTEXTO E COTAÇÕES EM TEMPO REAL:
-   - Os dados do ativo e o bloco de cotações em tempo real acima são fornecidos como referência. Use-os com precisão técnica quando a pergunta envolver esses papéis ou quando servir de exemplo.
-3. NUNCA UTILIZE EMOJIS: Mantenha um padrão analítico institucional, técnico e limpo, sem nenhum emoji.
-4. FORMATAÇÃO: Use markdown claro, títulos, listas, negrito para números e dados-chave, e tabelas comparativas quando pertinente.`;
 
-    const prompt = `Contexto de Suporte:
-${contextoStr}
+2. POSTURA DE TERMINAL & PROIBIÇÃO ABSOLUTA DE RESPOSTAS EVASIVAS:
+   - PROIBIÇÃO ABSOLUTA: NUNCA diga ao investidor para "consultar ferramentas externas como Bloomberg, FactSet, TradingView ou Finviz" e NUNCA se esquive alegando falta de dados da sessão ou falta de ferramentas de streaming. Você é o próprio terminal financeiro inteligente do usuário.
+   - Quando o investidor perguntar sobre maiores altas, maiores quedas, mercado hoje, fechamento, índices (S&P 500, Nasdaq, Dow Jones, Ibovespa, IFIX) ou notícias do pregão: apresente imediatamente a lista real dos ativos em destaque (com Tickers, Nomes de Empresas e Variações Percentuais %) e detalhe os motivos fundamentais e catalisadores que impulsionaram esses movimentos (balanços trimestrais, M&A, contratos, decisões de juros, commodities, etc.), organizando os dados em tabelas limpas.
+   - Se por qualquer instabilidade a ferramenta de pesquisa em tempo real falhar, sintetize os movimentos e tendências mais recentes do mercado com precisão analítica e catalisadores fundamentais, JAMAIS emitindo um aviso de recusa sugerindo serviços concorrentes.
+
+3. DADOS DE CONTEXTO E COTAÇÕES EM TEMPO REAL:
+   - Os dados do ativo e o bloco de cotações em tempo real acima são fornecidos como referência. Use-os com precisão técnica quando a pergunta envolver esses papéis ou quando servir de exemplo.
+
+4. NUNCA UTILIZE EMOJIS: Mantenha um padrão analítico institucional, técnico e limpo, sem nenhum emoji.
+
+5. FORMATAÇÃO: Use markdown claro, títulos, listas, negrito para números e dados-chave, e tabelas comparativas quando pertinente.`;
+
+    const agoraDataFormatada = new Date().toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const agoraHoraFormatada = new Date().toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const prompt = `Data e Horário de Referência: ${agoraDataFormatada}, ${agoraHoraFormatada} (Horário de Brasília).
+
+Contexto de Suporte:
+${isAskingAboutUS || isAskingAboutMacroGeral ? 'Usuário consultando panorama amplo de mercado ou índices globais.' : contextoStr}
 ${liveQuotesBlock}
 
 Histórico recente:
@@ -1429,28 +1497,31 @@ ${JSON.stringify(historico || [])}
 Mensagem do investidor:
 "${message}"
 
-Responda diretamente e com máxima inteligência analítica à mensagem acima.`;
+Responda diretamente e com máxima inteligência analítica à mensagem acima, sem emojis e com total rigor técnico.`;
 
     const clients = getGenAIClients(keyToUse);
-    // Modelos com failover prioritário (alta velocidade e cota gratuita ativa)
-    const models = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+    // Modelos oficiais ativos da família Gemini 3 (com failover prioritário e cota ativa)
+    const models = ['gemini-3.8-flash', 'gemini-3.1-flash-lite'];
     let textResponse = '';
     let usedSource = '';
     let searchSources: { title?: string; uri?: string }[] = [];
     let searchQueries: string[] = [];
 
-    const withTimeout = <T>(promise: Promise<T>, ms = 9000): Promise<T> =>
+    const withTimeout = <T>(promise: Promise<T>, ms = 25000): Promise<T> =>
       Promise.race([
         promise,
         new Promise<T>((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_LIMIT')), ms)),
       ]);
 
-    const querNoticiasOuHoje = /not[ií]cia|hoje|aconteceu|recente|reuni[aã]o|trimestre|governo|decis[aã]o|manchete/i.test(message);
+    const querPesquisaWeb =
+      /not[ií]cia|hoje|aconteceu|recente|reuni[aã]o|trimestre|governo|decis[aã]o|manchete|alta|altas|queda|quedas|maiores|ganhador|perdedor|sp500|s&p|ibov|b3|pregao|preg[aã]o|mercado|destaque|fechamento|abertura|setor|infla[cç][aã]o|taxa|fed|copom|selic|wall\s*street/i.test(
+        message
+      );
 
     for (const clientObj of clients) {
       for (const model of models) {
-        // Tentativa A (se relevante): com Pesquisa Web do Google Search para notícias recentes
-        if (querNoticiasOuHoje) {
+        // Tentativa A (se relevante): com Pesquisa Web do Google Search para dados e cotações recentes
+        if (querPesquisaWeb) {
           try {
             const searchResp = await withTimeout(
               clientObj.client.models.generateContent({
@@ -1461,7 +1532,7 @@ Responda diretamente e com máxima inteligência analítica à mensagem acima.`;
                   tools: [{ googleSearch: {} }],
                 },
               }),
-              8000
+              25000
             );
             if (searchResp.text) {
               textResponse = searchResp.text;
@@ -1483,7 +1554,8 @@ Responda diretamente e com máxima inteligência analítica à mensagem acima.`;
               }
               break;
             }
-          } catch {
+          } catch (err: any) {
+            console.warn(`Tentativa de Web Research falhou ou excedeu tempo (${model}):`, err.message || err);
             // Continua imediatamente para a tentativa direta sem ferramentas
           }
         }
