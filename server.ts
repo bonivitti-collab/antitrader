@@ -1536,7 +1536,7 @@ Responda diretamente e com máxima inteligência analítica à mensagem acima, s
             );
             if (searchResp.text) {
               textResponse = searchResp.text;
-              usedSource = `Gemini (${model} • Web Research)`;
+              usedSource = `AntiTrader AI (Web Research)`;
               const grounding = (searchResp.candidates?.[0] as any)?.groundingMetadata;
               if (grounding) {
                 if (grounding.webSearchQueries && Array.isArray(grounding.webSearchQueries)) {
@@ -1574,7 +1574,7 @@ Responda diretamente e com máxima inteligência analítica à mensagem acima, s
           );
           if (directResp.text) {
             textResponse = directResp.text;
-            usedSource = `Gemini (${model})`;
+            usedSource = `AntiTrader AI`;
             break;
           }
         } catch (error: any) {

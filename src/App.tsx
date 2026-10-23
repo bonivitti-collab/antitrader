@@ -2605,15 +2605,7 @@ function calcularZonaPreco(op: {
                       </div>
                     )}
 
-                    {msg.source && (
-                      <div className="mt-2 pt-1 border-t border-slate-200 text-[9px] font-mono text-slate-400 flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <span>Origem:</span>
-                          <strong className="text-slate-600">{msg.source}</strong>
-                        </div>
-                        <span className="text-slate-400">Setup Graham-Buffett</span>
-                      </div>
-                    )}
+
                   </div>
                 </div>
               ))
