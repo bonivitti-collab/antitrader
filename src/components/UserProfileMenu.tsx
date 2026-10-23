@@ -17,7 +17,7 @@ interface UserProfileMenuProps {
 }
 
 export function UserProfileMenu({ onOpenAuth, onNavigateToPlans }: UserProfileMenuProps) {
-  const { user, signOut, trialDaysRemaining, isConfigured } = useAuth();
+  const { user, signOut, trialDaysRemaining, subscription, isConfigured } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -71,10 +71,22 @@ export function UserProfileMenu({ onOpenAuth, onNavigateToPlans }: UserProfileMe
           <span className="text-[11px] font-bold text-slate-800 max-w-[110px] truncate">
             {user.name || user.email.split('@')[0]}
           </span>
-          <span className="text-[9px] font-semibold text-emerald-700 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {trialDaysRemaining > 0 ? `${trialDaysRemaining}d teste grátis` : 'Assinante Pro'}
-          </span>
+          {subscription.source === 'kiwify' && subscription.isPro ? (
+            <span className="text-[9px] font-bold text-emerald-700 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              {subscription.plan === 'anual' ? '★ Pro Anual' : 'Pro Mensal'}
+            </span>
+          ) : trialDaysRemaining > 0 ? (
+            <span className="text-[9px] font-semibold text-blue-700 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              {trialDaysRemaining}d teste grátis
+            </span>
+          ) : (
+            <span className="text-[9px] font-bold text-rose-600 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+              Plano Expirado
+            </span>
+          )}
         </div>
 
         <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
@@ -93,16 +105,38 @@ export function UserProfileMenu({ onOpenAuth, onNavigateToPlans }: UserProfileMe
               {user.email}
             </div>
 
-            {/* Status do Trial */}
-            <div className="mt-2.5 p-2 rounded-lg bg-emerald-50 border border-emerald-200/80 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-[11px]">
-                <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>Degustação Grátis:</span>
+            {/* Status da Assinatura / Trial */}
+            {subscription.source === 'kiwify' && subscription.isPro ? (
+              <div className="mt-2.5 p-2 rounded-lg bg-emerald-50 border border-emerald-200/80 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-[11px]">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Plano {subscription.plan === 'anual' ? 'Anual' : 'Mensal'}</span>
+                </div>
+                <span className="font-mono font-bold text-emerald-800 text-[10px] bg-white px-1.5 py-0.5 rounded shadow-2xs">
+                  Kiwify Pro
+                </span>
               </div>
-              <span className="font-mono font-black text-emerald-800 text-[11px] bg-white px-1.5 py-0.5 rounded shadow-2xs">
-                {trialDaysRemaining} {trialDaysRemaining === 1 ? 'dia restante' : 'dias restantes'}
-              </span>
-            </div>
+            ) : trialDaysRemaining > 0 ? (
+              <div className="mt-2.5 p-2 rounded-lg bg-blue-50 border border-blue-200/80 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5 text-blue-900 font-bold text-[11px]">
+                  <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Degustação Grátis:</span>
+                </div>
+                <span className="font-mono font-black text-blue-800 text-[11px] bg-white px-1.5 py-0.5 rounded shadow-2xs">
+                  {trialDaysRemaining} {trialDaysRemaining === 1 ? 'dia restante' : 'dias restantes'}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-2.5 p-2 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5 text-rose-900 font-bold text-[11px]">
+                  <CreditCard className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>Teste Finalizado</span>
+                </div>
+                <span className="font-bold text-rose-700 text-[10px] bg-white px-1.5 py-0.5 rounded shadow-2xs">
+                  Assine Pro
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Links e Ações */}

@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Globe,
   Clock,
+  Lock,
   Zap,
   Target,
   Trophy,
@@ -236,6 +237,8 @@ const CountdownDisplay = React.memo(function CountdownDisplay({
 });
 
 export default function GrahamBuyZoneWorkspace() {
+  const { user, subscription, trialDaysRemaining } = useAuth();
+
   // Controle de abas para telas pequenas (mobile/tablet)
   // No desktop, o Painel de Informações e o Copilot ficam lado a lado
   const [mobileTab, setMobileTab] = useState<'oportunidades' | 'metas' | 'info' | 'copilot' | 'ambas'>('oportunidades');
@@ -1078,6 +1081,22 @@ function calcularZonaPreco(op: {
       
       {/* Barra Superior Sólida de Ancoragem Safe-Area para iOS Safari & PWA (Elimina o efeito esfumaçado/embaçado) */}
       <div className="w-full bg-white shrink-0 h-[env(safe-area-inset-top,0px)]" />
+
+      {/* Banner de Aviso de Assinatura Expirada */}
+      {user && !subscription.isPro && trialDaysRemaining === 0 && (
+        <div className="bg-gradient-to-r from-amber-600 to-rose-700 text-white px-3 py-1.5 flex items-center justify-between text-xs font-bold shadow-md z-30 shrink-0">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-amber-200 shrink-0" />
+            <span>Seu período de teste de 7 dias expirou. Ative o AntiTrader Pro para manter acesso contínuo.</span>
+          </div>
+          <button
+            onClick={() => navigateTo('landing')}
+            className="px-2.5 py-0.5 bg-white text-rose-800 hover:bg-rose-50 rounded text-[11px] font-black cursor-pointer transition-colors shadow-xs"
+          >
+            Ver Planos Kiwify
+          </button>
+        </div>
+      )}
 
       {/* Banner de Notificação de Metas Alcançadas */}
       {metaNotification && (

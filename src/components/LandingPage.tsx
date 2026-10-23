@@ -42,6 +42,26 @@ export function LandingPage({ onEnterApp, onOpenAuth }: LandingPageProps) {
   const [planoAnual, setPlanoAnual] = useState(true);
   const [faqAberto, setFaqAberto] = useState<number | null>(null);
 
+  const checkoutMensalUrl = import.meta.env.VITE_KIWIFY_CHECKOUT_MENSAL_URL || '';
+  const checkoutAnualUrl = import.meta.env.VITE_KIWIFY_CHECKOUT_ANUAL_URL || '';
+
+  const handleCheckoutOrAuth = (plano: 'mensal' | 'anual') => {
+    const targetUrl = plano === 'anual' ? checkoutAnualUrl : checkoutMensalUrl;
+    if (targetUrl) {
+      try {
+        const url = new URL(targetUrl);
+        if (user?.email) url.searchParams.set('email', user.email);
+        if (user?.name) url.searchParams.set('name', user.name);
+        window.open(url.toString(), '_blank');
+        return;
+      } catch {
+        window.open(targetUrl, '_blank');
+        return;
+      }
+    }
+    handleOpenAuth('signup');
+  };
+
   const handleOpenAuth = (mode: 'login' | 'signup') => {
     if (user) {
       onEnterApp();
@@ -715,7 +735,7 @@ export function LandingPage({ onEnterApp, onOpenAuth }: LandingPageProps) {
               </div>
 
               <button
-                onClick={() => handleOpenAuth('signup')}
+                onClick={() => handleCheckoutOrAuth('mensal')}
                 className="w-full py-3 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 transition-all cursor-pointer shadow-xs active:scale-95"
               >
                 Experimentar 7 Dias Grátis
@@ -770,7 +790,7 @@ export function LandingPage({ onEnterApp, onOpenAuth }: LandingPageProps) {
               </div>
 
               <button
-                onClick={() => handleOpenAuth('signup')}
+                onClick={() => handleCheckoutOrAuth('anual')}
                 className="w-full py-3.5 rounded-xl font-black text-sm bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white shadow-lg shadow-blue-600/30 transition-all cursor-pointer active:scale-95"
               >
                 Garantir 7 Dias Grátis + Desconto Anual

@@ -11,12 +11,23 @@ export interface AuthUser {
   isDemo?: boolean;
 }
 
+export interface SubscriptionData {
+  isPro: boolean;
+  plan: 'mensal' | 'anual' | 'trial' | 'none';
+  status: 'active' | 'trial' | 'canceled' | 'expired' | 'none';
+  expiresAt?: string;
+  productName?: string;
+  source: 'kiwify' | 'trial' | 'sandbox';
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
   loading: boolean;
   isConfigured: boolean;
   trialDaysRemaining: number;
+  subscription: SubscriptionData;
+  refreshSubscription: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: string | null; needsEmailConfirmation?: boolean }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
@@ -104,18 +115,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Cálculo dos dias restantes de degustação (7 dias a partir da criação)
-  const trialDaysRemaining = useMemo(() => {
-    if (!user) return 7;
-    try {
-      const createdDate = new Date(user.createdAt).getTime();
-      const now = Date.now();
-      const elapsedDays = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
-      return Math.max(0, 7 - elapsedDays);
-    } catch {
-      return 7;
+  // Estado da Assinatura (Kiwify / Degustação / Sandbox)
+  const [subscription, setSubscription] = useState<SubscriptionData>({
+    isPro: true,
+    plan: 'trial',
+    status: 'trial',
+    source: 'trial',
+  });
+
+  const refreshSubscription = async () => {
+    if (!user?.email) {
+      setSubscription({ isPro: false, plan: 'none', status: 'none', source: 'sandbox' });
+      return;
     }
-  }, [user]);
+
+    try {
+      const res = await fetch(`/api/subscription/status?email=${encodeURIComponent(user.email)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.isPro) {
+          setSubscription({
+            isPro: true,
+            plan: data.plan || 'anual',
+            status: data.status || 'active',
+            expiresAt: data.expiresAt,
+            productName: data.productName,
+            source: 'kiwify',
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('[AuthContext] Falha ao consultar status de assinatura:', e);
+    }
+
+    // Se não há assinatura paga ativa na Kiwify, verifica o período de degustação (7 dias)
+    if (trialDaysRemaining > 0) {
+      setSubscription({
+        isPro: true,
+        plan: 'trial',
+        status: 'trial',
+        source: 'trial',
+      });
+    } else {
+      setSubscription({
+        isPro: false,
+        plan: 'none',
+        status: 'expired',
+        source: 'trial',
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      refreshSubscription();
+    }
+  }, [user, trialDaysRemaining]);
 
   // Login com E-mail e Senha
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
@@ -264,6 +320,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         isConfigured: isSupabaseConfigured,
         trialDaysRemaining,
+        subscription,
+        refreshSubscription,
         signIn,
         signUp,
         signInWithGoogle,

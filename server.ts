@@ -1,4 +1,5 @@
 import express from 'express';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -34,6 +35,20 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 
 app.use(express.json());
+
+// Inicialização do Supabase para Banco de Dados e Webhooks de Assinatura
+const supabaseServerUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseServerKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY;
+
+export const supabaseServer: SupabaseClient | null =
+  supabaseServerUrl && supabaseServerKey
+    ? createClient(supabaseServerUrl, supabaseServerKey, {
+        auth: { persistSession: false },
+      })
+    : null;
 
 // Gerenciamento de Chaves de API (Primária Gratuita + Backup com Failover Automático)
 function getGenAIClients(customKey?: string) {
@@ -854,6 +869,181 @@ app.get('/api/live-quotes', async (req, res) => {
     })
   );
   res.json(results);
+});
+
+// =========================================================================
+// ROTA: Webhook Oficial Kiwify (Ativação e Gestão Automática de Assinaturas)
+// =========================================================================
+app.get('/api/webhooks/kiwify', (_req, res) => {
+  res.json({
+    status: 'online',
+    service: 'AntiTrader Kiwify Webhook Gateway',
+    timestamp: new Date().toISOString(),
+    configured: Boolean(process.env.KIWIFY_WEBHOOK_TOKEN),
+    supabaseConnected: Boolean(supabaseServer),
+  });
+});
+
+app.post('/api/webhooks/kiwify', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const tokenHeader = (req.headers['x-kiwify-signature'] as string) || '';
+    const tokenQuery = (req.query.token as string) || '';
+    const tokenBody = payload.token || '';
+    const receivedToken = tokenQuery || tokenHeader || tokenBody;
+    const expectedToken = process.env.KIWIFY_WEBHOOK_TOKEN;
+
+    // Se o token secreto estiver configurado no ambiente, valida a autenticidade
+    if (expectedToken && receivedToken && receivedToken !== expectedToken) {
+      console.warn('[Kiwify Webhook] Tentativa não autorizada com token inválido:', receivedToken);
+      return res.status(401).json({ error: 'Token de webhook Kiwify inválido' });
+    }
+
+    const orderId = payload.order_id || payload.Subscription?.id || `ord-${Date.now()}`;
+    const orderStatus = String(payload.order_status || payload.status || '').toLowerCase().trim();
+    const customer = payload.Customer || {};
+    const email = String(customer.email || payload.email || '').toLowerCase().trim();
+    const customerName = customer.full_name || customer.name || '';
+    const customerPhone = customer.mobile || customer.phone || '';
+    const product = payload.Product || {};
+    const productName = product.product_name || payload.product_name || 'AntiTrader Pro';
+    const planName = String(payload.Subscription?.plan?.name || productName || '').toLowerCase();
+    const planType = planName.includes('anual') || planName.includes('ano') ? 'anual' : 'mensal';
+    const paymentMethod = payload.payment_method || '';
+    const pricePaid = payload.order_amount ? Number(payload.order_amount) / 100 : undefined;
+
+    console.log(`[Kiwify Webhook] Evento: order_id=${orderId}, status=${orderStatus}, email=${email}, plano=${planType}`);
+
+    if (!email) {
+      console.warn('[Kiwify Webhook] Payload ignorado: campo de e-mail ausente');
+      return res.status(400).json({ error: 'E-mail do cliente é obrigatório no webhook' });
+    }
+
+    // Define data de expiração com margem de segurança de renovação (+3 dias)
+    const now = new Date();
+    let expiresAt = new Date(now);
+    if (planType === 'anual') {
+      expiresAt.setDate(expiresAt.getDate() + 368); // 1 ano + tolerância
+    } else {
+      expiresAt.setDate(expiresAt.getDate() + 33); // 30 dias + tolerância
+    }
+
+    // Se a Kiwify enviar data da próxima cobrança, adota como referência
+    if (payload.Subscription?.next_payment) {
+      const nextPay = new Date(payload.Subscription.next_payment);
+      if (!isNaN(nextPay.getTime())) {
+        nextPay.setDate(nextPay.getDate() + 3);
+        expiresAt = nextPay;
+      }
+    }
+
+    let subscriptionStatus: 'active' | 'canceled' | 'refunded' | 'chargeback' | 'pending' = 'active';
+    if (['refunded', 'reembolsado'].includes(orderStatus)) {
+      subscriptionStatus = 'refunded';
+    } else if (['chargedback', 'chargeback'].includes(orderStatus)) {
+      subscriptionStatus = 'chargeback';
+    } else if (['canceled', 'cancelado'].includes(orderStatus)) {
+      subscriptionStatus = 'canceled';
+    } else if (['waiting_payment', 'pendente', 'refused'].includes(orderStatus)) {
+      subscriptionStatus = 'pending';
+    }
+
+    // Salva ou atualiza registro no Supabase
+    if (supabaseServer) {
+      try {
+        const { error: dbError } = await supabaseServer.from('subscriptions').upsert(
+          {
+            kiwify_order_id: orderId,
+            email,
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            product_id: product.product_id || '',
+            product_name: productName,
+            plan_type: planType,
+            status: subscriptionStatus,
+            price_paid: pricePaid,
+            payment_method: paymentMethod,
+            expires_at: subscriptionStatus === 'active' ? expiresAt.toISOString() : undefined,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'kiwify_order_id' }
+        );
+
+        if (dbError) {
+          console.error('[Kiwify Webhook] Erro ao gravar assinatura no Supabase:', dbError.message);
+        } else {
+          console.log(`[Kiwify Webhook] Assinatura salva com sucesso no Supabase para ${email} (${subscriptionStatus})`);
+        }
+      } catch (err: any) {
+        console.error('[Kiwify Webhook] Falha de conexão com Supabase:', err.message);
+      }
+    } else {
+      console.warn('[Kiwify Webhook] Supabase não conectado. Notificação aceita em modo stateless.');
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Notificação Kiwify recebida e processada com sucesso',
+      orderId,
+      email,
+      status: subscriptionStatus,
+    });
+  } catch (error: any) {
+    console.error('[Kiwify Webhook] Erro no processamento:', error);
+    return res.status(500).json({ error: error.message || 'Erro interno no processamento do webhook' });
+  }
+});
+
+// =========================================================================
+// ROTA: Consulta de Status da Assinatura do Usuário
+// =========================================================================
+app.get('/api/subscription/status', async (req, res) => {
+  try {
+    const email = String(req.query.email || '').toLowerCase().trim();
+    if (!email) {
+      return res.status(400).json({ error: 'Parâmetro email é obrigatório' });
+    }
+
+    if (!supabaseServer) {
+      return res.json({
+        isPro: false,
+        plan: 'none',
+        status: 'sandbox',
+        message: 'Supabase não conectado no servidor',
+      });
+    }
+
+    const { data, error } = await supabaseServer
+      .from('subscriptions')
+      .select('*')
+      .eq('email', email)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[Subscription Status] Erro ao consultar Supabase:', error.message);
+      return res.json({ isPro: false, plan: 'none', status: 'error' });
+    }
+
+    if (!data) {
+      return res.json({ isPro: false, plan: 'none', status: 'inactive' });
+    }
+
+    const isExpired = data.expires_at ? new Date(data.expires_at).getTime() < Date.now() : false;
+
+    return res.json({
+      isPro: !isExpired,
+      plan: data.plan_type || 'mensal',
+      status: isExpired ? 'expired' : 'active',
+      expiresAt: data.expires_at,
+      productName: data.product_name,
+    });
+  } catch (err: any) {
+    console.error('[Subscription Status] Erro na consulta:', err);
+    return res.status(500).json({ error: err.message || 'Erro ao consultar assinatura' });
+  }
 });
 
 // Endpoint: Busca de Fundamentos Reais com Cotação ao Vivo e IA
