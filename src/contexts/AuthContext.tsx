@@ -123,6 +123,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     source: 'trial',
   });
 
+  // Cálculo dos dias restantes de degustação (7 dias a partir da criação)
+  const trialDaysRemaining = useMemo(() => {
+    if (!user) return 7;
+    try {
+      const createdDate = new Date(user.createdAt).getTime();
+      const now = Date.now();
+      const elapsedDays = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+      return Math.max(0, 7 - elapsedDays);
+    } catch {
+      return 7;
+    }
+  }, [user]);
+
   const refreshSubscription = async () => {
     if (!user?.email) {
       setSubscription({ isPro: false, plan: 'none', status: 'none', source: 'sandbox' });
