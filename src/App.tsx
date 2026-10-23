@@ -1045,11 +1045,31 @@ function calcularZonaPreco(op: {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Controla scroll nativo: Landing Page requer scroll livre; o workspace do Terminal requer tela travada no viewport (100dvh)
+  useEffect(() => {
+    if (currentRoute === 'landing') {
+      document.documentElement.style.overflow = 'auto';
+      document.body.style.overflow = 'auto';
+      document.documentElement.style.height = 'auto';
+      document.body.style.height = 'auto';
+      document.body.style.backgroundColor = '#070b14';
+    } else {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.height = '100%';
+      document.body.style.height = '100%';
+      document.body.style.backgroundColor = '#ffffff';
+    }
+  }, [currentRoute]);
+
   const navigateTo = (route: 'landing' | 'app') => {
     setCurrentRoute(route);
     const targetPath = route === 'app' ? '/app' : '/';
     if (window.location.pathname !== targetPath) {
       window.history.pushState({}, '', targetPath);
+    }
+    if (route === 'landing') {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     }
   };
 

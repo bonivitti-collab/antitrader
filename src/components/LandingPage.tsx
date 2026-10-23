@@ -200,7 +200,7 @@ export function LandingPage({ onEnterApp, onOpenAuth }: LandingPageProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen w-full overflow-x-hidden bg-[#070b14] text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
       
       {/* ======================================================== */}
       {/* NAVBAR SUPERIOR                                          */}
